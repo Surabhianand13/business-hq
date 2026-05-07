@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solvv AI — Websites That Slap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Custom Cursor -->
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-follower" id="cursor-follower"></div>
+
+  <!-- Loader -->
+  <div class="loader" id="loader">
+    <div class="loader-inner">
+      <div class="loader-logo">SOLVV<span>AI</span></div>
+      <div class="loader-bar-wrap"><div class="loader-bar" id="loader-bar"></div></div>
+      <div class="loader-pct" id="loader-pct">0%</div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-logo">SOLVV<span>AI</span></a>
+      <ul class="nav-links">
+        <li><a href="#services">Services</a></li>
+        <li><a href="#process">Process</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#clients">Clients</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <a href="#contact" class="btn btn-primary nav-cta">Get Started →</a>
+      <button class="hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobile-menu">
+    <ul>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#process">Process</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#clients">Clients</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <a href="#contact" class="btn btn-primary">Get Started →</a>
+  </div>
+
+  <!-- ═══════════════ HERO ═══════════════ -->
+  <section class="hero" id="hero">
+    <canvas id="hero-canvas"></canvas>
+    <div class="hero-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="noise"></div>
+
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        Available for projects · 7-day delivery
+      </div>
+
+      <h1 class="hero-title">
+        <span class="hero-line" data-delay="0">We Build</span>
+        <span class="hero-line glitch" data-text="Websites" data-delay="100">Websites</span>
+        <span class="hero-line" data-delay="200">That <em class="gradient-text">SLAP</em></span>
+      </h1>
+
+      <p class="hero-sub">AI-powered web experiences built in <strong>7 days</strong>. No cap. Just results.</p>
+
+      <div class="hero-ctas">
+        <a href="#pricing" class="btn btn-primary btn-lg magnetic">
+          <span>Start Your Project</span>
+          <span class="btn-arrow">→</span>
+        </a>
+        <a href="#services" class="btn btn-ghost btn-lg magnetic">
+          <span>See What We Do</span>
+        </a>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat">
+          <div class="stat-num"><span class="count" data-target="50">0</span>+</div>
+          <div class="stat-label">Sites Launched</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <div class="stat-num"><span class="count" data-target="7">0</span></div>
+          <div class="stat-label">Days to Live</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <div class="stat-num"><span class="count" data-target="100">0</span>%</div>
+          <div class="stat-label">Client Satisfaction</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-indicator">
+      <div class="scroll-line"></div>
+      <span>SCROLL</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ MARQUEE 1 ═══════════════ -->
+  <div class="ticker ticker-dark">
+    <div class="ticker-track">
+      <div class="ticker-content">
+        <span>WEB DESIGN</span><span class="dot">✦</span>
+        <span>AI INTEGRATION</span><span class="dot">✦</span>
+        <span>7 DAY DELIVERY</span><span class="dot">✦</span>
+        <span>BRAND IDENTITY</span><span class="dot">✦</span>
+        <span>SEO &amp; GROWTH</span><span class="dot">✦</span>
+        <span>E-COMMERCE</span><span class="dot">✦</span>
+        <span>MOBILE-FIRST</span><span class="dot">✦</span>
+        <span>WEB DESIGN</span><span class="dot">✦</span>
+        <span>AI INTEGRATION</span><span class="dot">✦</span>
+        <span>7 DAY DELIVERY</span><span class="dot">✦</span>
+        <span>BRAND IDENTITY</span><span class="dot">✦</span>
+        <span>SEO &amp; GROWTH</span><span class="dot">✦</span>
+        <span>E-COMMERCE</span><span class="dot">✦</span>
+        <span>MOBILE-FIRST</span><span class="dot">✦</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SERVICES ═══════════════ -->
+  <section class="section services" id="services">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-tag">What We Do</span>
+        <h2 class="section-title">Services That <span class="gradient-text">Hit Different</span></h2>
+        <p class="section-sub">From concept to launch in 7 days. We handle everything.</p>
+      </div>
+
+      <div class="services-grid">
+        <div class="service-card reveal" data-delay="0">
+          <div class="card-num">01</div>
+          <div class="card-icon">🚀</div>
+          <h3>Web Development</h3>
+          <p>Full-stack websites built with cutting-edge tech. Fast, responsive, and built to scale from day one.</p>
+          <div class="card-tags">
+            <span>React</span><span>Next.js</span><span>Webflow</span>
+          </div>
+          <div class="card-link">Explore →</div>
+        </div>
+
+        <div class="service-card service-card--featured reveal" data-delay="80">
+          <div class="card-glow"></div>
+          <div class="card-num">02</div>
+          <div class="card-icon">🤖</div>
+          <h3>AI Integration</h3>
+          <p>Embed intelligent chatbots, AI search, personalization, and automation. Your site, supercharged.</p>
+          <div class="card-tags">
+            <span>GPT-4o</span><span>Claude</span><span>Automation</span>
+          </div>
+          <div class="card-link">Explore →</div>
+        </div>
+
+        <div class="service-card reveal" data-delay="160">
+          <div class="card-num">03</div>
+          <div class="card-icon">🎨</div>
+          <h3>Brand Identity</h3>
+          <p>Logo, palette, typography, and full brand kit. We make you impossible to ignore.</p>
+          <div class="card-tags">
+            <span>Logo</span><span>Brand Kit</span><span>UI System</span>
+          </div>
+          <div class="card-link">Explore →</div>
+        </div>
+
+        <div class="service-card reveal" data-delay="240">
+          <div class="card-num">04</div>
+          <div class="card-icon">📱</div>
+          <h3>Mobile-First Design</h3>
+          <p>Every pixel perfected for mobile. Looks insane on any screen, any device, anywhere.</p>
+          <div class="card-tags">
+            <span>Responsive</span><span>PWA</span><span>App-like</span>
+          </div>
+          <div class="card-link">Explore →</div>
+        </div>
+
+        <div class="service-card reveal" data-delay="320">
+          <div class="card-num">05</div>
+          <div class="card-icon">🔍</div>
+          <h3>SEO &amp; Performance</h3>
+          <p>Rank higher. Load faster. Convert more. We optimize every layer of your site.</p>
+          <div class="card-tags">
+            <span>Core Vitals</span><span>SEO</span><span>Analytics</span>
+          </div>
+          <div class="card-link">Explore →</div>
+        </div>
+
+        <div class="service-card reveal" data-delay="400">
+          <div class="card-num">06</div>
+          <div class="card-icon">🛒</div>
+          <h3>E-Commerce</h3>
+          <p>Online stores that actually convert. Beautiful product pages and frictionless checkout.</p>
+          <div class="card-tags">
+            <span>Shopify</span><span>Stripe</span><span>Custom</span>
+          </div>
+          <div class="card-link">Explore →</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ GRADIENT BANNER ═══════════════ -->
+  <div class="gradient-banner">
+    <div class="gb-inner">
+      <h2>Your website is your<br><em>first impression.</em></h2>
+      <a href="#contact" class="btn btn-white magnetic">Make it count →</a>
+    </div>
+    <div class="gb-orbs">
+      <div class="gb-orb gb-orb-1"></div>
+      <div class="gb-orb gb-orb-2"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ PROCESS ═══════════════ -->
+  <section class="section process" id="process">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-tag">Our Process</span>
+        <h2 class="section-title">7 Days. <span class="gradient-text">Real Results.</span></h2>
+        <p class="section-sub">From your first call to a live website in exactly one week.</p>
+      </div>
+
+      <div class="process-grid">
+        <div class="process-item reveal" data-delay="0">
+          <div class="process-day">Day 1</div>
+          <div class="process-card">
+            <span class="process-emoji">🎯</span>
+            <h4>Discovery Call</h4>
+            <p>Deep dive into your brand, goals, and vision. Strategy locked and loaded.</p>
+          </div>
+        </div>
+        <div class="process-item reveal" data-delay="60">
+          <div class="process-day">Day 2</div>
+          <div class="process-card">
+            <span class="process-emoji">✏️</span>
+            <h4>Design Concepts</h4>
+            <p>First mockups delivered. Your brand comes to life visually.</p>
+          </div>
+        </div>
+        <div class="process-item reveal" data-delay="120">
+          <div class="process-day">Day 3</div>
+          <div class="process-card">
+            <span class="process-emoji">🎨</span>
+            <h4>Refinement</h4>
+            <p>We refine based on your feedback. Every detail dialed in.</p>
+          </div>
+        </div>
+        <div class="process-item reveal" data-delay="180">
+          <div class="process-day">Day 4</div>
+          <div class="process-card">
+            <span class="process-emoji">⚡</span>
+            <h4>Dev Starts</h4>
+            <p>Code written. Animations built. Magic happens here.</p>
+          </div>
+        </div>
+        <div class="process-item reveal" data-delay="240">
+          <div class="process-day">Day 5</div>
+          <div class="process-card">
+            <span class="process-emoji">🔧</span>
+            <h4>Full Build</h4>
+            <p>All pages developed. Integrations connected. CMS set up.</p>
+          </div>
+        </div>
+        <div class="process-item reveal" data-delay="300">
+          <div class="process-day">Day 6</div>
+          <div class="process-card">
+            <span class="process-emoji">✅</span>
+            <h4>QA &amp; Review</h4>
+            <p>Tested across every device. Your review session. Final tweaks.</p>
+          </div>
+        </div>
+        <div class="process-item process-item--launch reveal" data-delay="360">
+          <div class="process-day">Day 7</div>
+          <div class="process-card">
+            <span class="process-emoji">🚀</span>
+            <h4>LAUNCH DAY</h4>
+            <p>Your site goes live. Domain connected. World, meet your brand.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ CLIENTS ═══════════════ -->
+  <section class="section clients" id="clients">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-tag">Our Clients</span>
+        <h2 class="section-title">Brands We've <span class="gradient-text">Elevated</span></h2>
+        <p class="section-sub">Trusted by startups and scale-ups across the globe.</p>
+      </div>
+    </div>
+
+    <div class="clients-marquee">
+      <div class="clients-track">
+        <div class="client-logo">TechFlow<span class="client-tag">SaaS</span></div>
+        <div class="client-logo">NovaCorp<span class="client-tag">Fintech</span></div>
+        <div class="client-logo">PixelBrand<span class="client-tag">Agency</span></div>
+        <div class="client-logo">DataSync<span class="client-tag">Analytics</span></div>
+        <div class="client-logo">CloudVault<span class="client-tag">Storage</span></div>
+        <div class="client-logo">Nexus<span class="client-tag">Web3</span></div>
+        <div class="client-logo">Luminary<span class="client-tag">Media</span></div>
+        <div class="client-logo">Apexify<span class="client-tag">E-comm</span></div>
+        <div class="client-logo">TechFlow<span class="client-tag">SaaS</span></div>
+        <div class="client-logo">NovaCorp<span class="client-tag">Fintech</span></div>
+        <div class="client-logo">PixelBrand<span class="client-tag">Agency</span></div>
+        <div class="client-logo">DataSync<span class="client-tag">Analytics</span></div>
+        <div class="client-logo">CloudVault<span class="client-tag">Storage</span></div>
+        <div class="client-logo">Nexus<span class="client-tag">Web3</span></div>
+        <div class="client-logo">Luminary<span class="client-tag">Media</span></div>
+        <div class="client-logo">Apexify<span class="client-tag">E-comm</span></div>
+      </div>
+    </div>
+
+    <!-- Testimonials -->
+    <div class="container">
+      <div class="testimonials">
+        <div class="testimonial reveal">
+          <div class="testi-stars">★★★★★</div>
+          <p>"Solvv AI delivered our entire brand and website in 6 days. The animations are insane. Our conversion rate jumped 3x on launch week."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">MK</div>
+            <div>
+              <strong>Marcus Kim</strong>
+              <span>CEO, TechFlow</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial reveal" data-delay="100">
+          <div class="testi-stars">★★★★★</div>
+          <p>"Legitimately thought a 7-day website was a gimmick. Then I saw the final product. These guys are on another level. No cap."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">SL</div>
+            <div>
+              <strong>Sarah Lin</strong>
+              <span>Founder, NovaCorp</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial reveal" data-delay="200">
+          <div class="testi-stars">★★★★★</div>
+          <p>"The AI integration they built is a game-changer. Our support load dropped 60% in the first month. Worth every penny of the Dominate package."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">JR</div>
+            <div>
+              <strong>Jordan Reed</strong>
+              <span>CTO, DataSync</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ PRICING ═══════════════ -->
+  <section class="section pricing" id="pricing">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-tag">Pricing</span>
+        <h2 class="section-title">Pick Your <span class="gradient-text">Level</span></h2>
+        <p class="section-sub">No hidden fees. No BS. Just straight up value.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Launch -->
+        <div class="pricing-card reveal" data-delay="0">
+          <div class="plan-header">
+            <div class="plan-icon">🛸</div>
+            <div class="plan-name">Launch</div>
+            <div class="plan-tagline">Perfect for getting started</div>
+          </div>
+          <div class="plan-price-wrap">
+            <div class="plan-price">$999</div>
+            <div class="plan-delivery">7-day delivery</div>
+          </div>
+          <ul class="plan-features">
+            <li><span class="check">✓</span> 5-Page Website</li>
+            <li><span class="check">✓</span> Mobile Responsive</li>
+            <li><span class="check">✓</span> Basic SEO Setup</li>
+            <li><span class="check">✓</span> Contact Form</li>
+            <li><span class="check">✓</span> 1 Revision Round</li>
+            <li><span class="check">✓</span> Hosting Setup</li>
+            <li class="muted"><span class="cross">✗</span> Custom Animations</li>
+            <li class="muted"><span class="cross">✗</span> AI Features</li>
+          </ul>
+          <a href="#contact" class="btn btn-outline full-width">Get Started →</a>
+        </div>
+
+        <!-- Scale (Featured) -->
+        <div class="pricing-card pricing-card--featured reveal" data-delay="100">
+          <div class="plan-badge">Most Popular 🔥</div>
+          <div class="plan-header">
+            <div class="plan-icon">⚡</div>
+            <div class="plan-name">Scale</div>
+            <div class="plan-tagline">For brands that mean business</div>
+          </div>
+          <div class="plan-price-wrap">
+            <div class="plan-price">$2,499</div>
+            <div class="plan-delivery">7-day delivery</div>
+          </div>
+          <ul class="plan-features">
+            <li><span class="check">✓</span> 10-Page Website</li>
+            <li><span class="check">✓</span> Custom Animations</li>
+            <li><span class="check">✓</span> Advanced SEO</li>
+            <li><span class="check">✓</span> CMS Integration</li>
+            <li><span class="check">✓</span> 3 Revision Rounds</li>
+            <li><span class="check">✓</span> AI Chatbot</li>
+            <li><span class="check">✓</span> Analytics Dashboard</li>
+            <li><span class="check">✓</span> Performance Optimized</li>
+          </ul>
+          <a href="#contact" class="btn btn-primary full-width magnetic">Get Started →</a>
+        </div>
+
+        <!-- Dominate -->
+        <div class="pricing-card reveal" data-delay="200">
+          <div class="plan-header">
+            <div class="plan-icon">👑</div>
+            <div class="plan-name">Dominate</div>
+            <div class="plan-tagline">Full brand domination</div>
+          </div>
+          <div class="plan-price-wrap">
+            <div class="plan-price">$4,999</div>
+            <div class="plan-delivery">7-day delivery</div>
+          </div>
+          <ul class="plan-features">
+            <li><span class="check">✓</span> Unlimited Pages</li>
+            <li><span class="check">✓</span> Custom AI Integration</li>
+            <li><span class="check">✓</span> Full Brand Identity</li>
+            <li><span class="check">✓</span> E-Commerce Ready</li>
+            <li><span class="check">✓</span> Unlimited Revisions</li>
+            <li><span class="check">✓</span> Priority Support</li>
+            <li><span class="check">✓</span> 30-Day Maintenance</li>
+            <li><span class="check">✓</span> Custom Integrations</li>
+          </ul>
+          <a href="#contact" class="btn btn-outline full-width">Get Started →</a>
+        </div>
+      </div>
+
+      <div class="pricing-note reveal">
+        <span>🤔 Not sure which plan?</span>
+        <a href="#contact">Drop us a message and we'll figure it out together →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ MARQUEE 2 (reverse) ═══════════════ -->
+  <div class="ticker ticker-color ticker-reverse">
+    <div class="ticker-track">
+      <div class="ticker-content">
+        <span>LET'S BUILD SOMETHING CRAZY</span><span class="dot">★</span>
+        <span>7 DAYS. NO EXCUSES.</span><span class="dot">★</span>
+        <span>AI-POWERED. HUMAN-CRAFTED.</span><span class="dot">★</span>
+        <span>YOUR BRAND. AMPLIFIED.</span><span class="dot">★</span>
+        <span>LET'S BUILD SOMETHING CRAZY</span><span class="dot">★</span>
+        <span>7 DAYS. NO EXCUSES.</span><span class="dot">★</span>
+        <span>AI-POWERED. HUMAN-CRAFTED.</span><span class="dot">★</span>
+        <span>YOUR BRAND. AMPLIFIED.</span><span class="dot">★</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CONTACT ═══════════════ -->
+  <section class="section contact" id="contact">
+    <div class="container">
+      <div class="contact-grid">
+        <div class="contact-left reveal">
+          <span class="section-tag">Let's Talk</span>
+          <h2 class="section-title">Ready to <span class="gradient-text">Launch?</span></h2>
+          <p class="section-sub">Drop us a message. We reply within 24 hours. No cap.</p>
+
+          <div class="contact-details">
+            <div class="contact-item">
+              <span class="c-icon">📧</span>
+              <div>
+                <div class="c-label">Email</div>
+                <div class="c-value">hello@solvvai.com</div>
+              </div>
+            </div>
+            <div class="contact-item">
+              <span class="c-icon">⚡</span>
+              <div>
+                <div class="c-label">Response Time</div>
+                <div class="c-value">Under 24 hours</div>
+              </div>
+            </div>
+            <div class="contact-item">
+              <span class="c-icon">🌍</span>
+              <div>
+                <div class="c-label">Clients</div>
+                <div class="c-value">Worldwide</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-socials">
+            <a href="#" class="social-pill">Twitter</a>
+            <a href="#" class="social-pill">Instagram</a>
+            <a href="#" class="social-pill">LinkedIn</a>
+          </div>
+        </div>
+
+        <div class="contact-right reveal" data-delay="100">
+          <form class="contact-form" id="contact-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Your Name</label>
+                <input type="text" placeholder="Alex Johnson" required>
+              </div>
+              <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" placeholder="alex@brand.com" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Select Package</label>
+              <select>
+                <option value="">Choose your plan...</option>
+                <option>Launch — $999</option>
+                <option>Scale — $2,499</option>
+                <option>Dominate — $4,999</option>
+                <option>Custom Project</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tell us about your project</label>
+              <textarea placeholder="What are you building? What's your vision? The more detail the better..." rows="5" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary full-width btn-lg magnetic" id="submit-btn">
+              <span class="btn-text">Send It 🚀</span>
+              <span class="btn-success" style="display:none">Message Sent! We'll be in touch ✓</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">SOLVV<span>AI</span></div>
+          <p>Building the internet's next chapter.<br>One site at a time. In 7 days.</p>
+          <div class="footer-socials">
+            <a href="#">TW</a>
+            <a href="#">IG</a>
+            <a href="#">LI</a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="#">Web Development</a></li>
+            <li><a href="#">AI Integration</a></li>
+            <li><a href="#">Brand Identity</a></li>
+            <li><a href="#">E-Commerce</a></li>
+            <li><a href="#">SEO &amp; Performance</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="#">About</a></li>
+            <li><a href="#process">Process</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Start Today</h4>
+          <p class="footer-cta-text">Your next website, delivered in 7 days.</p>
+          <a href="#contact" class="btn btn-primary">Book a Call →</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 Solvv AI. Built different. All rights reserved.</p>
+        <div class="footer-links-bottom">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
