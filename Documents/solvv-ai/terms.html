@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Terms of Service — Solvv AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,11 +27,19 @@
     .legal-back { display: inline-flex; align-items: center; gap: 8px; color: var(--gray); font-size: 0.9rem; text-decoration: none; margin-bottom: 48px; transition: color 0.2s; }
     .legal-back:hover { color: var(--white); }
   </style>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17812098070"></script>
+    <!-- Google Consent Mode v2 — must come before gtag loads -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
+      gtag('consent', 'default', {
+        ad_storage: 'denied', analytics_storage: 'denied',
+        ad_user_data: 'denied', ad_personalization: 'denied',
+        wait_for_update: 500
+      });
+    </script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17812098070"></script>
+    <script>
       gtag('js', new Date());
       gtag('config', 'AW-17812098070');
     </script>
@@ -135,5 +144,6 @@
     </div>
   </footer>
 
+  <script src="cookie-consent.js"></script>
 </body>
 </html>

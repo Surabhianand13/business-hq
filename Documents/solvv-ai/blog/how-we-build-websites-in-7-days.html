@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How We Build Websites in 7 Days — Our Full Process Revealed | Solvv AI</title>
+  <meta name="description" content="A step-by-step look inside Solvv AI's 7-day website delivery process — from discovery call to live launch. Tools, timelines, and the team behind it.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://solvvai.com/blog/how-we-build-websites-in-7-days.html">
+  <meta property="og:title" content="How We Build Websites in 7 Days — Our Full Process Revealed">
+  <meta property="og:description" content="A step-by-step look inside Solvv AI's 7-day website delivery process.">
+  <meta property="og:url" content="https://solvvai.com/blog/how-we-build-websites-in-7-days.html">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="https://solvvai.com/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"How We Build Websites in 7 Days — Our Full Process Revealed","description":"A step-by-step look inside Solvv AI's 7-day website delivery process.","author":{"@type":"Organization","name":"Solvv AI"},"publisher":{"@type":"Organization","name":"Solvv AI","url":"https://solvvai.com"},"datePublished":"2026-05-20","dateModified":"2026-05-20","mainEntityOfPage":{"@type":"WebPage","@id":"https://solvvai.com/blog/how-we-build-websites-in-7-days.html"}}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="blog.css">
+  <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
+  <style>
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s var(--ease), transform 0.6s var(--ease); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .day-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); padding: 28px; margin: 16px 0; display: flex; gap: 20px; align-items: flex-start; }
+    .day-badge { background: linear-gradient(135deg, var(--primary), var(--primary-l)); border-radius: 12px; padding: 10px 16px; font-family: var(--font-h); font-size: 1.1rem; letter-spacing: 1px; color: #fff; white-space: nowrap; flex-shrink: 0; }
+    .day-body h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .day-body p { font-size: 0.9rem; color: var(--gray-l); line-height: 1.6; margin: 0; }
+  </style>
+    <!-- Google Consent Mode v2 — must come before gtag loads -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('consent', 'default', {
+        ad_storage: 'denied', analytics_storage: 'denied',
+        ad_user_data: 'denied', ad_personalization: 'denied',
+        wait_for_update: 500
+      });
+    </script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17812098070"></script>
+    <script>
+      gtag('js', new Date());
+      gtag('config', 'AW-17812098070');
+    </script>
+</head>
+<body>
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-follower" id="cursor-follower"></div>
+  <div class="reading-progress" id="reading-progress"></div>
+
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="../index.html" class="nav-logo">SOLVV<span>AI</span></a>
+      <ul class="nav-links">
+        <li><a href="../index.html#services">Services</a></li>
+        <li><a href="../index.html#process">Process</a></li>
+        <li><a href="../index.html#pricing">Pricing</a></li>
+        <li><a href="index.html">Blog</a></li>
+        <li><a href="../index.html#contact">Contact</a></li>
+      </ul>
+      <a href="#" class="btn btn-primary calendly-trigger">📞 Book a Call</a>
+    </div>
+  </nav>
+
+  <div class="blog-hero">
+    <div class="blog-hero-inner">
+      <a href="index.html" class="blog-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Back to Blog</a>
+      <div class="blog-category">Process</div>
+      <h1>How We Build <span class="grad">Stunning Websites</span><br>in 7 Days</h1>
+      <div class="blog-meta">
+        <span>By <strong>Solvv AI Team</strong></span>
+        <span>·</span>
+        <span>May 20, 2026</span>
+        <span>·</span>
+        <span>7 min read</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="blog-layout">
+    <article class="blog-article">
+      <div class="prose">
+
+        <p>When we tell people we deliver complete, custom websites in 7 days, the first reaction is usually skepticism. <em>"Is it actually good?"</em> The honest answer: yes — and in this article, we're pulling back the curtain completely. Here's exactly what happens from the moment you book a call to the moment your site goes live.</p>
+
+        <p>The 7-day timeline isn't magic. It's a <strong>precision-engineered workflow</strong> that eliminates wasted time at every step while doubling down on the parts that actually matter.</p>
+
+        <div class="stat-grid">
+          <div class="stat-box"><span class="s-num">7</span><span class="s-label">Days from brief to live</span></div>
+          <div class="stat-box"><span class="s-num">50+</span><span class="s-label">Sites delivered this way</span></div>
+          <div class="stat-box"><span class="s-num">100%</span><span class="s-label">Client satisfaction rate</span></div>
+          <div class="stat-box"><span class="s-num">0</span><span class="s-label">Missed deadlines (our fault)</span></div>
+        </div>
+
+        <div class="cta-box">
+          <h3>Want Us to Build Your Website?</h3>
+          <p>Start with a free 30-minute call. We'll scope your project and confirm the timeline before any commitment.</p>
+          <div class="cta-box-btns">
+            <a href="#" class="btn-cta calendly-trigger">📞 Book a Free Call</a>
+            <a href="../index.html#pricing" class="btn-cta-ghost">View Pricing →</a>
+          </div>
+        </div>
+
+        <h2 id="prerequisites">Before Day 1: What We Need From You</h2>
+        <p>The 7-day clock starts <strong>only when we have everything we need</strong>. Delays almost always come from the client side — missing logos, undecided brand colours, no content. We solve this upfront with a structured onboarding brief sent immediately after booking:</p>
+        <ul>
+          <li>Your logo files (SVG or high-res PNG preferred)</li>
+          <li>Brand colours (hex codes, or reference examples)</li>
+          <li>3–5 websites you like the look of</li>
+          <li>All page copy (or confirmation that you want us to write it)</li>
+          <li>Any product/service photos or confirmation that stock is fine</li>
+        </ul>
+        <p>If you're missing some of these, that's fine — we offer copywriting and brand direction as part of the Scale and Dominate packages. The key is knowing upfront so we can plan accordingly.</p>
+
+        <h2 id="day-by-day">The Day-by-Day Breakdown</h2>
+
+        <div class="day-card">
+          <div class="day-badge">Day 1</div>
+          <div class="day-body">
+            <h3>Discovery &amp; Strategy</h3>
+            <p>We run a 60–90 minute discovery session (video call or async brief). We map your goals, audience, competitors, and conversion objectives. By end of day, we have a confirmed sitemap, content strategy, and design direction locked in.</p>
+          </div>
+        </div>
+        <div class="day-card">
+          <div class="day-badge">Day 2</div>
+          <div class="day-body">
+            <h3>Design Concepts</h3>
+            <p>Our designer builds the first mockup — hero section, colour palette, typography, and primary layout. AI tools (Figma AI, reference generation) accelerate ideation. You receive the first visual concept by end of day for feedback.</p>
+          </div>
+        </div>
+        <div class="day-card">
+          <div class="day-badge">Day 3</div>
+          <div class="day-body">
+            <h3>Design Refinement</h3>
+            <p>We incorporate your feedback from Day 2 and expand the design to remaining pages. Every section gets refined — spacing, hierarchy, micro-interactions. By end of Day 3, the full design is approved and dev-ready.</p>
+          </div>
+        </div>
+        <div class="day-card">
+          <div class="day-badge">Day 4</div>
+          <div class="day-body">
+            <h3>Development Begins</h3>
+            <p>Clean HTML, CSS, and JavaScript — no bloated frameworks. We code the primary sections: hero, services, about, and key CTAs. AI code assistance (GitHub Copilot, Claude) handles repetitive logic; humans handle craft and creativity.</p>
+          </div>
+        </div>
+        <div class="day-card">
+          <div class="day-badge">Day 5</div>
+          <div class="day-body">
+            <h3>Full Build + Animations</h3>
+            <p>All remaining sections built and animated. Mobile responsiveness tuned across breakpoints. Contact form, CMS (if included), and any integrations (Calendly, WhatsApp, analytics) wired up and tested.</p>
+          </div>
+        </div>
+        <div class="day-card">
+          <div class="day-badge">Day 6</div>
+          <div class="day-body">
+            <h3>Your Review &amp; Revisions</h3>
+            <p>You receive a private staging link. We walk you through the site on a screen-share call. Revisions are noted and implemented same-day. This is your chance to tweak, adjust, and get it exactly right.</p>
+          </div>
+        </div>
+        <div class="day-card">
+          <div class="day-badge">Day 7</div>
+          <div class="day-body">
+            <h3>Launch Day</h3>
+            <p>DNS configured, SSL certificate installed, final performance audit run (Core Web Vitals, PageSpeed), sitemap submitted to Google Search Console. Your site goes live. We hand over all files, login credentials, and a walkthrough recording.</p>
+          </div>
+        </div>
+
+        <div class="cta-box">
+          <h3>Ready to Start Your 7-Day Build?</h3>
+          <p>Pick a time that works for you. The first call is free, no obligation, and we reply within 24 hours.</p>
+          <div class="cta-box-btns">
+            <a href="#" class="btn-cta calendly-trigger">📞 Book a Discovery Call</a>
+          </div>
+        </div>
+
+        <h2 id="tools">The Tools That Make It Possible</h2>
+        <p>Speed without quality isn't worth anything. Here are the key tools in our stack that let us deliver fast <em>and</em> well:</p>
+        <ul>
+          <li><strong>Figma + Figma AI</strong> — design and prototyping at speed</li>
+          <li><strong>Claude &amp; GitHub Copilot</strong> — code generation and debugging assistance</li>
+          <li><strong>Linear</strong> — project tracking with day-by-day task visibility</li>
+          <li><strong>Loom</strong> — async video feedback to replace slow email chains</li>
+          <li><strong>Vercel / Netlify</strong> — instant deploys, zero-downtime launches</li>
+          <li><strong>PageSpeed Insights + Lighthouse</strong> — performance validation before every launch</li>
+        </ul>
+
+        <h2 id="what-can-go-wrong">What Can Delay the 7-Day Timeline</h2>
+        <p>In our experience, delays are almost always caused by one of these:</p>
+        <ul>
+          <li>Missing content or assets from the client (the #1 cause)</li>
+          <li>Scope changes mid-project ("can we also add an e-commerce section?")</li>
+          <li>Slow feedback response (we give a 24-hour window for replies)</li>
+        </ul>
+        <p>None of these are hard problems. We manage them proactively by setting clear expectations in the brief, keeping scope tight, and maintaining daily communication throughout the build. If a delay is ever on our end, we compensate with a discount — it's that simple.</p>
+
+        <h2 id="result">What You Get on Day 7</h2>
+        <p>At the end of the 7 days, you receive:</p>
+        <ul>
+          <li>A live, custom-coded website optimised for speed and SEO</li>
+          <li>All source files (HTML, CSS, JS, design files)</li>
+          <li>Full code ownership — no licensing, no lock-in</li>
+          <li>A walkthrough video explaining how to update content</li>
+          <li>Google Search Console set up and sitemap submitted</li>
+          <li>30 days of free bug fixes after launch</li>
+        </ul>
+
+        <div class="cta-box">
+          <h3>Let's Build Something Great Together</h3>
+          <p>50+ businesses have launched with us. Yours could be next — in just 7 days.</p>
+          <div class="cta-box-btns">
+            <a href="#" class="btn-cta calendly-trigger">📞 Start My 7-Day Build</a>
+            <a href="../index.html#contact" class="btn-cta-ghost">Send a Message →</a>
+          </div>
+        </div>
+
+      </div>
+      <div class="author-box">
+        <div class="author-avatar">⚡</div>
+        <div class="author-info">
+          <h4>Solvv AI Team</h4>
+          <p>We build AI-powered websites for businesses worldwide. 50+ sites launched. 7-day delivery guaranteed. Based globally, serving clients across the US, UK, India, and beyond.</p>
+        </div>
+      </div>
+    </article>
+
+    <aside class="blog-sidebar">
+      <div class="sidebar-sticky">
+        <div class="toc-box">
+          <h4>In This Article</h4>
+          <nav class="toc-list">
+            <a href="#prerequisites">Before Day 1</a>
+            <a href="#day-by-day">Day-by-Day Breakdown</a>
+            <a href="#tools">Our Tool Stack</a>
+            <a href="#what-can-go-wrong">What Can Delay It</a>
+            <a href="#result">What You Get on Day 7</a>
+          </nav>
+        </div>
+        <div class="sidebar-cta-box">
+          <h4>Start Your 7-Day Build</h4>
+          <p>Book a free call. We'll scope your project same day.</p>
+          <a href="#" class="calendly-trigger">📞 Book a Free Call</a>
+        </div>
+        <div class="sidebar-links-box">
+          <h4>Related Articles</h4>
+          <ul>
+            <li><a href="ai-web-design-agency-vs-traditional.html">AI vs Traditional Agency →</a></li>
+            <li><a href="high-converting-landing-page-design.html">High-Converting Landing Pages →</a></li>
+            <li><a href="website-speed-optimization-complete-guide.html">Website Speed Guide →</a></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="related-posts">
+    <h2>Keep Reading</h2>
+    <div class="related-grid">
+      <a href="ai-web-design-agency-vs-traditional.html" class="related-card">
+        <div class="r-cat">Web Design</div>
+        <h3>AI Agency vs Traditional Agency: The 2026 Comparison</h3>
+        <p>Speed, cost, quality — every angle compared.</p>
+        <span class="r-link">Read Article →</span>
+      </a>
+      <a href="high-converting-landing-page-design.html" class="related-card">
+        <div class="r-cat">Conversion</div>
+        <h3>How to Design a High-Converting Landing Page</h3>
+        <p>The anatomy of a page that turns visitors into leads.</p>
+        <span class="r-link">Read Article →</span>
+      </a>
+      <a href="website-speed-optimization-complete-guide.html" class="related-card">
+        <div class="r-cat">Performance</div>
+        <h3>Website Speed Optimization: The Complete Guide</h3>
+        <p>Slow websites lose 53% of visitors. Here's the fix.</p>
+        <span class="r-link">Read Article →</span>
+      </a>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">SOLVV<span>AI</span></div>
+          <p>Building the internet's next chapter.<br>One site at a time. In 7 days.</p>
+          <div class="footer-socials">
+            <a href="https://www.instagram.com/solvv.ai" target="_blank" rel="noopener" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+            <a href="https://www.linkedin.com/company/solvv-ai/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
+          </div>
+        </div>
+        <div class="footer-col"><h4>Services</h4><ul><li><a href="../index.html#services">Website Development</a></li><li><a href="../index.html#services">AI Agents</a></li><li><a href="../index.html#services">AI Automations</a></li></ul></div>
+        <div class="footer-col"><h4>Company</h4><ul><li><a href="../index.html">Home</a></li><li><a href="index.html">Blog</a></li><li><a href="../index.html#pricing">Pricing</a></li><li><a href="../index.html#contact">Contact</a></li></ul></div>
+        <div class="footer-col"><h4>Start Today</h4><p class="footer-cta-text">Your next website, delivered in 7 days.</p><a href="#" class="btn btn-primary calendly-trigger">Book a Call →</a></div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Solvv AI. Built different. All rights reserved.</p>
+        <div class="footer-links-bottom"><a href="../privacy.html">Privacy</a><a href="../terms.html">Terms</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <a href="https://wa.me/919535076475?text=Hi%2C%20I%27d%20like%20to%20know%20more%20about%20getting%20a%20website%20built%20by%20Solvv%20AI" target="_blank" rel="noopener noreferrer" class="wa-float" aria-label="Chat on WhatsApp">
+    <svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    <span class="wa-label">Chat for a quick reply →</span>
+  </a>
+  <script src="blog.js"></script>
+  <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
+  <script src="../cookie-consent.js"></script>
+</body>
+</html>
