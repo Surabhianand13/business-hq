@@ -86,7 +86,7 @@ router.post('/:id/lock', async (req, res) => {
     const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     const sheetRows = entries.map(e => ({
       submitted_at: now,
-      date: rows[0].session_date,
+      date: new Date(rows[0].session_date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Kolkata' }),
       supervisor: rows[0].supervisor_name,
       item_name: e.item_name,
       qty: e.qty,
