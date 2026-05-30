@@ -33,6 +33,25 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
     }
   };
 
+  const startNewDispatch = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/sessions/new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supervisor }),
+      });
+      const data = await res.json();
+      setSession(data);
+      setEntries([]);
+      setShowForm(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadEntries = async (sessionId) => {
     const res = await fetch(`/api/entries?session_id=${sessionId}`);
     const data = await res.json();
@@ -160,8 +179,16 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
           </div>
         </div>
         {locked && (
-          <div className="mt-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2">
-            🔒 This dispatch has been submitted and locked
+          <div className="mt-3 space-y-2">
+            <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2">
+              ✅ Submitted &amp; synced to Google Sheets
+            </div>
+            <button
+              onClick={startNewDispatch}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
+            >
+              + Start New Dispatch
+            </button>
           </div>
         )}
       </div>

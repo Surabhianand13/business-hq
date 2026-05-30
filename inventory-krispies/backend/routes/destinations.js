@@ -1,25 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { query } = require('../db');
 
-router.get('/', (req, res) => {
-  const dests = db.prepare('SELECT * FROM destinations ORDER BY name').all();
-  res.json(dests);
+router.get('/', async (req, res) => {
+  try {
+    const { rows } = await query('SELECT * FROM destinations ORDER BY name');
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/', (req, res) => {
-  const { name } = req.body;
-  if (!name) return res.status(400).json({ error: 'name is required' });
-  const result = db.prepare('INSERT INTO destinations (name) VALUES (?)').run(name);
-  const dest = db.prepare('SELECT * FROM destinations WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json(dest);
+router.post('/', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'name is required' });
+    const { rows } = await query('INSERT INTO destinations (name) VALUES ($1) RETURNING *', [name]);
+    res.status(201).json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.delete('/:id', (req, res) => {
-  const dest = db.prepare('SELECT * FROM destinations WHERE id = ?').get(req.params.id);
-  if (!dest) return res.status(404).json({ error: 'Destination not found' });
-  db.prepare('DELETE FROM destinations WHERE id = ?').run(req.params.id);
-  res.json({ success: true });
+router.delete('/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM destinations WHERE id=$1', [req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 module.exports = router;

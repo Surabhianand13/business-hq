@@ -6,11 +6,38 @@ import HistoryPage from './pages/HistoryPage.jsx';
 import CatalogPage from './pages/CatalogPage.jsx';
 import Toast from './components/Toast.jsx';
 
+const SECRET_KEY = 'krispies2026';
+
+function useAccess() {
+  const params = new URLSearchParams(window.location.search);
+  const urlKey = params.get('access');
+  if (urlKey === SECRET_KEY) {
+    localStorage.setItem('access_key', urlKey);
+    // Clean the key out of the URL without a page reload
+    const clean = window.location.pathname;
+    window.history.replaceState({}, '', clean);
+  }
+  return localStorage.getItem('access_key') === SECRET_KEY;
+}
+
 export default function App() {
+  const hasAccess = useAccess();
   const [supervisor, setSupervisor] = useState(() => localStorage.getItem('supervisor') || '');
   const [page, setPage] = useState('dispatch');
   const [toast, setToast] = useState(null);
   const [sessionId, setSessionId] = useState(null);
+
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-amber-50 flex flex-col items-center justify-center px-6 text-center">
+        <div className="text-6xl mb-4">🔒</div>
+        <h1 className="text-2xl font-bold text-amber-800 mb-2">Access Restricted</h1>
+        <p className="text-gray-500 text-sm max-w-xs">
+          This app is for Krispies staff only.<br />Please use the link shared by your manager.
+        </p>
+      </div>
+    );
+  }
 
   const showToast = (msg) => {
     setToast(msg);
@@ -54,6 +81,7 @@ export default function App() {
             sessionId={sessionId}
             showToast={showToast}
             onBack={() => setPage('dispatch')}
+            onNewDispatch={() => { setSessionId(null); setPage('dispatch'); }}
           />
         )}
         {page === 'history' && <HistoryPage showToast={showToast} />}

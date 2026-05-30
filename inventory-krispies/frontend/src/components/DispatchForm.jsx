@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function DispatchForm({ initialData, editEntry, sessionId, destinations, onAdded, onCancel }) {
   const [form, setForm] = useState({
@@ -10,6 +10,17 @@ export default function DispatchForm({ initialData, editEntry, sessionId, destin
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const [allItems, setAllItems] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const suggestionsRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    fetch('/api/items').then(r => r.json()).then(setAllItems).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -24,6 +35,50 @@ export default function DispatchForm({ initialData, editEntry, sessionId, destin
   }, [initialData]);
 
   const set = (key, val) => setForm(p => ({ ...p, [key]: val }));
+
+  const handleNameChange = (val) => {
+    set('item_name', val);
+    if (val.trim().length === 0) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    const q = val.toLowerCase();
+    const matched = allItems.filter(item =>
+      item.name.toLowerCase().includes(q)
+    ).slice(0, 8);
+    setSuggestions(matched);
+    setShowSuggestions(matched.length > 0);
+    setHighlightIndex(-1);
+  };
+
+  const selectSuggestion = (item) => {
+    setForm(p => ({
+      ...p,
+      item_name: item.name,
+      qty: p.qty || String(item.default_qty),
+      unit: p.unit || item.default_unit || '',
+    }));
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setHighlightIndex(-1);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!showSuggestions) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightIndex(i => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightIndex(i => Math.max(i - 1, -1));
+    } else if (e.key === 'Enter' && highlightIndex >= 0) {
+      e.preventDefault();
+      selectSuggestion(suggestions[highlightIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,19 +123,59 @@ export default function DispatchForm({ initialData, editEntry, sessionId, destin
     }
   };
 
+  const highlight = (text, query) => {
+    if (!query.trim()) return text;
+    const idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <span className="font-bold text-amber-700">{text.slice(idx, idx + query.length)}</span>
+        {text.slice(idx + query.length)}
+      </>
+    );
+  };
+
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm p-4 mb-4 space-y-3">
       <h2 className="font-semibold text-amber-800 text-base">{editEntry ? 'Edit Entry' : 'Add Item'}</h2>
       {error && <div className="text-red-500 text-sm">{error}</div>}
 
-      <div>
+      {/* Item name with autocomplete */}
+      <div className="relative">
         <label className="block text-xs font-medium text-gray-500 mb-1">Item Name *</label>
         <input
-          type="text" required value={form.item_name}
-          onChange={e => set('item_name', e.target.value)}
-          placeholder="e.g. Sourdough Bread"
+          ref={inputRef}
+          type="text"
+          required
+          value={form.item_name}
+          onChange={e => handleNameChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          onFocus={() => form.item_name && suggestions.length > 0 && setShowSuggestions(true)}
+          placeholder="Type to search items…"
+          autoComplete="off"
           className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-300"
         />
+        {showSuggestions && (
+          <ul
+            ref={suggestionsRef}
+            className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden"
+          >
+            {suggestions.map((item, i) => (
+              <li
+                key={item.id}
+                onMouseDown={() => selectSuggestion(item)}
+                className={`flex items-center justify-between px-4 py-3 cursor-pointer text-sm border-b border-gray-50 last:border-0 ${
+                  i === highlightIndex ? 'bg-amber-50' : 'hover:bg-gray-50'
+                }`}
+              >
+                <span className="text-gray-800">{highlight(item.name, form.item_name)}</span>
+                <span className="text-xs text-gray-400 ml-3 shrink-0">{item.default_qty} {item.default_unit} · {item.category}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -89,7 +184,7 @@ export default function DispatchForm({ initialData, editEntry, sessionId, destin
           <input
             type="number" required min="0.01" step="0.01" value={form.qty}
             onChange={e => set('qty', e.target.value)}
-            placeholder="100"
+            placeholder="0"
             className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-300"
           />
         </div>
@@ -98,7 +193,7 @@ export default function DispatchForm({ initialData, editEntry, sessionId, destin
           <input
             type="text" value={form.unit}
             onChange={e => set('unit', e.target.value)}
-            placeholder="pcs / loaf / box"
+            placeholder="pcs / loaf / pkt"
             className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-300"
           />
         </div>
