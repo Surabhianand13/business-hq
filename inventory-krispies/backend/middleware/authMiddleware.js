@@ -1,12 +1,17 @@
 const { makeToken } = require('../routes/auth');
 
 module.exports = (req, res, next) => {
-  const expected = process.env.ACCESS_KEY || 'krispies2026';
-  const validToken = makeToken(expected);
+  const expected = process.env.ACCESS_KEY;
+  if (!expected) return res.status(500).json({ error: 'Server misconfigured' });
 
-  // Accept token from header OR query param (for CSV export window.open links)
+  let validToken;
+  try {
+    validToken = makeToken(expected);
+  } catch (e) {
+    return res.status(500).json({ error: 'Server misconfigured' });
+  }
+
   const token = req.headers['x-access-token'] || req.query.token;
-
   if (!token || token !== validToken) {
     return res.status(401).json({ error: 'Unauthorized' });
   }

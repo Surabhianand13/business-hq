@@ -15,39 +15,47 @@ export default function App() {
   const [sessionId, setSessionId] = useState(null);
 
   useEffect(() => {
+    async function tryFetch(url, options, retries = 3, delay = 4000) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const res = await fetch(url, options);
+          return res;
+        } catch {
+          if (i < retries - 1) await new Promise(r => setTimeout(r, delay));
+        }
+      }
+      return null;
+    }
+
     async function checkAccess() {
-      // Check if ?access=KEY is in the URL — verify with backend
       const params = new URLSearchParams(window.location.search);
       const urlKey = params.get('access');
 
       if (urlKey) {
-        // Clean key from URL immediately
+        // Clean key from URL immediately so it's not in browser history
         window.history.replaceState({}, '', window.location.pathname);
-        try {
-          const res = await fetch('/api/auth', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: urlKey }),
-          });
-          if (res.ok) {
-            const { token } = await res.json();
-            setToken(token);
-            setAuthState('granted');
-            return;
-          }
-        } catch {}
+        // Retry up to 3x to handle Render cold start (~30s wake time)
+        const res = await tryFetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: urlKey }),
+        });
+        if (res?.ok) {
+          const { token } = await res.json();
+          setToken(token);
+          setAuthState('granted');
+          return;
+        }
         setAuthState('denied');
         return;
       }
 
       // Already have a token saved — verify it still works
       if (getToken()) {
-        try {
-          const res = await fetch('/api/items', {
-            headers: { 'x-access-token': getToken() },
-          });
-          if (res.ok) { setAuthState('granted'); return; }
-        } catch {}
+        const res = await tryFetch('/api/items', {
+          headers: { 'x-access-token': getToken() },
+        });
+        if (res?.ok) { setAuthState('granted'); return; }
         clearToken();
       }
 
@@ -70,8 +78,10 @@ export default function App() {
 
   if (authState === 'checking') {
     return (
-      <div className="min-h-screen bg-amber-50 flex items-center justify-center">
-        <div className="text-amber-500 text-lg">Loading…</div>
+      <div className="min-h-screen bg-amber-50 flex flex-col items-center justify-center gap-3">
+        <div className="text-4xl animate-bounce">🥐</div>
+        <div className="text-amber-600 font-medium">Starting up…</div>
+        <div className="text-gray-400 text-sm">This may take up to 30 seconds</div>
       </div>
     );
   }
