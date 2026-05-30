@@ -1,0 +1,6 @@
+node_modules/
+backend/bakery.db
+backend/bakery.db-shm
+backend/bakery.db-wal
+frontend/dist/
+.DS_Store
