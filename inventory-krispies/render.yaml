@@ -7,6 +7,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: ACCESS_KEY
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: krispies-db

@@ -1,3 +1,4 @@
+import { apiFetch, exportUrl } from '../api.js';
 import React, { useState, useEffect, useRef } from 'react';
 
 export default function DispatchForm({ initialData, editEntry, sessionId, destinations, onAdded, onCancel }) {
@@ -19,7 +20,7 @@ export default function DispatchForm({ initialData, editEntry, sessionId, destin
   const inputRef = useRef(null);
 
   useEffect(() => {
-    fetch('/api/items').then(r => r.json()).then(setAllItems).catch(() => {});
+    apiFetch('/api/items').then(r => r.json()).then(setAllItems).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function DispatchForm({ initialData, editEntry, sessionId, destin
     setSaving(true);
     try {
       if (editEntry) {
-        const res = await fetch(`/api/entries/${editEntry.id}`, {
+        const res = await apiFetch(`/api/entries/${editEntry.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -101,7 +102,7 @@ export default function DispatchForm({ initialData, editEntry, sessionId, destin
         if (!res.ok) throw new Error('Failed to update');
         onAdded(`✓ ${form.item_name.trim()} updated`);
       } else {
-        const res = await fetch('/api/entries', {
+        const res = await apiFetch('/api/entries', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

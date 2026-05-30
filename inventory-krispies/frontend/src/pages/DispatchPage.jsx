@@ -1,3 +1,4 @@
+import { apiFetch, exportUrl } from '../api.js';
 import React, { useState, useEffect, useRef } from 'react';
 import DispatchForm from '../components/DispatchForm.jsx';
 import DispatchList from '../components/DispatchList.jsx';
@@ -22,7 +23,7 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
 
   const loadSession = async () => {
     try {
-      const res = await fetch(`/api/sessions/today?supervisor=${encodeURIComponent(supervisor)}`);
+      const res = await apiFetch(`/api/sessions/today?supervisor=${encodeURIComponent(supervisor)}`);
       const data = await res.json();
       setSession(data);
       loadEntries(data.id);
@@ -36,7 +37,7 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
   const startNewDispatch = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/sessions/new', {
+      const res = await apiFetch('/api/sessions/new', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ supervisor }),
@@ -53,13 +54,13 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
   };
 
   const loadEntries = async (sessionId) => {
-    const res = await fetch(`/api/entries?session_id=${sessionId}`);
+    const res = await apiFetch(`/api/entries?session_id=${sessionId}`);
     const data = await res.json();
     setEntries(data);
   };
 
   const loadDestinations = async () => {
-    const res = await fetch('/api/destinations');
+    const res = await apiFetch('/api/destinations');
     const data = await res.json();
     setDestinations(data);
   };
@@ -72,7 +73,7 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
   };
 
   const handleDelete = async (id) => {
-    await fetch(`/api/entries/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/entries/${id}`, { method: 'DELETE' });
     showToast('Entry deleted');
     if (session) loadEntries(session.id);
   };

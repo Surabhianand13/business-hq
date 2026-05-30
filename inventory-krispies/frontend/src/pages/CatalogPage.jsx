@@ -1,3 +1,4 @@
+import { apiFetch, exportUrl } from '../api.js';
 import React, { useState, useEffect } from 'react';
 import QRPrintPage from '../components/QRPrintPage.jsx';
 
@@ -16,20 +17,20 @@ export default function CatalogPage({ showToast }) {
   }, []);
 
   const loadItems = () =>
-    fetch('/api/items').then(r => r.json()).then(setItems);
+    apiFetch('/api/items').then(r => r.json()).then(setItems);
 
   const loadDestinations = () =>
-    fetch('/api/destinations').then(r => r.json()).then(setDestinations);
+    apiFetch('/api/destinations').then(r => r.json()).then(setDestinations);
 
   const handleAddItem = async (e) => {
     e.preventDefault();
     const payload = { ...newItem, default_qty: parseFloat(newItem.default_qty) || null };
     if (editItem) {
-      await fetch(`/api/items/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      await apiFetch(`/api/items/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       showToast('Item updated');
       setEditItem(null);
     } else {
-      await fetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      await apiFetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       showToast('Item added');
     }
     setNewItem({ name: '', default_qty: '', default_unit: '', category: '' });
@@ -45,7 +46,7 @@ export default function CatalogPage({ showToast }) {
 
   const handleDeleteItem = async (id) => {
     if (!confirm('Delete this item?')) return;
-    await fetch(`/api/items/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/items/${id}`, { method: 'DELETE' });
     showToast('Item deleted');
     loadItems();
   };
@@ -53,7 +54,7 @@ export default function CatalogPage({ showToast }) {
   const handleAddDest = async (e) => {
     e.preventDefault();
     if (!newDest.trim()) return;
-    await fetch('/api/destinations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newDest.trim() }) });
+    await apiFetch('/api/destinations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newDest.trim() }) });
     setNewDest('');
     showToast('Destination added');
     loadDestinations();
@@ -61,7 +62,7 @@ export default function CatalogPage({ showToast }) {
 
   const handleDeleteDest = async (id) => {
     if (!confirm('Delete this destination?')) return;
-    await fetch(`/api/destinations/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/destinations/${id}`, { method: 'DELETE' });
     showToast('Destination deleted');
     loadDestinations();
   };

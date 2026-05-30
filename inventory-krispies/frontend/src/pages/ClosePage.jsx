@@ -1,3 +1,4 @@
+import { apiFetch, exportUrl } from '../api.js';
 import React, { useState, useEffect } from 'react';
 
 export default function ClosePage({ sessionId, showToast, onBack, onNewDispatch }) {
@@ -15,8 +16,8 @@ export default function ClosePage({ sessionId, showToast, onBack, onNewDispatch 
   const loadData = async () => {
     try {
       const [sRes, eRes] = await Promise.all([
-        fetch(`/api/sessions`),
-        fetch(`/api/entries?session_id=${sessionId}`),
+        apiFetch(`/api/sessions`),
+        apiFetch(`/api/entries?session_id=${sessionId}`),
       ]);
       const sessions = await sRes.json();
       const entriesData = await eRes.json();
@@ -30,7 +31,7 @@ export default function ClosePage({ sessionId, showToast, onBack, onNewDispatch 
   const handleLock = async () => {
     setLocking(true);
     try {
-      await fetch(`/api/sessions/${sessionId}/lock`, { method: 'POST' });
+      await apiFetch(`/api/sessions/${sessionId}/lock`, { method: 'POST' });
       setSynced(true);
       showToast('✓ Dispatch submitted — synced to Google Sheets');
       loadData();
@@ -40,7 +41,7 @@ export default function ClosePage({ sessionId, showToast, onBack, onNewDispatch 
   };
 
   const handleExport = () => {
-    window.open(`/api/sessions/${sessionId}/export`, '_blank');
+    window.open(exportUrl(`/api/sessions/${sessionId}/export`), '_blank');
   };
 
   if (loading) {

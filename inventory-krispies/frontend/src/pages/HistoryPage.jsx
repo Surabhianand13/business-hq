@@ -1,3 +1,4 @@
+import { apiFetch, exportUrl } from '../api.js';
 import React, { useState, useEffect } from 'react';
 
 export default function HistoryPage({ showToast }) {
@@ -7,7 +8,7 @@ export default function HistoryPage({ showToast }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/sessions')
+    apiFetch('/api/sessions')
       .then(r => r.json())
       .then(data => { setSessions(data); setLoading(false); })
       .catch(() => setLoading(false));
@@ -17,14 +18,14 @@ export default function HistoryPage({ showToast }) {
     if (expanded === id) { setExpanded(null); return; }
     setExpanded(id);
     if (!entries[id]) {
-      const res = await fetch(`/api/entries?session_id=${id}`);
+      const res = await apiFetch(`/api/entries?session_id=${id}`);
       const data = await res.json();
       setEntries(prev => ({ ...prev, [id]: data }));
     }
   };
 
   const handleExport = (id) => {
-    window.open(`/api/sessions/${id}/export`, '_blank');
+    window.open(exportUrl(`/api/sessions/${id}/export`), '_blank');
   };
 
   const formatDate = (dateStr) => {
