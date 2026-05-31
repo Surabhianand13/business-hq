@@ -18,6 +18,7 @@ async function init() {
       default_qty REAL,
       default_unit TEXT,
       category TEXT,
+      barcode TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -47,6 +48,11 @@ async function init() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Add barcode column if it doesn't exist (migration for existing DBs)
+  await pool.query(`
+    ALTER TABLE items ADD COLUMN IF NOT EXISTS barcode TEXT;
+  `).catch(() => {});
 
   // Seed items if empty
   const { rows: itemRows } = await pool.query('SELECT COUNT(*) as cnt FROM items');

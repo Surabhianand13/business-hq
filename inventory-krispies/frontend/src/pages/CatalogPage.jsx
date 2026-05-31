@@ -7,7 +7,7 @@ export default function CatalogPage({ showToast }) {
   const [destinations, setDestinations] = useState([]);
   const [showAddItem, setShowAddItem] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [newItem, setNewItem] = useState({ name: '', default_qty: '', default_unit: '', category: '' });
+  const [newItem, setNewItem] = useState({ name: '', default_qty: '', default_unit: '', category: '', barcode: '' });
   const [newDest, setNewDest] = useState('');
   const [showQR, setShowQR] = useState(false);
 
@@ -33,14 +33,14 @@ export default function CatalogPage({ showToast }) {
       await apiFetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       showToast('Item added');
     }
-    setNewItem({ name: '', default_qty: '', default_unit: '', category: '' });
+    setNewItem({ name: '', default_qty: '', default_unit: '', category: '', barcode: '' });
     setShowAddItem(false);
     loadItems();
   };
 
   const handleEditItem = (item) => {
     setEditItem(item);
-    setNewItem({ name: item.name, default_qty: item.default_qty || '', default_unit: item.default_unit || '', category: item.category || '' });
+    setNewItem({ name: item.name, default_qty: item.default_qty || '', default_unit: item.default_unit || '', category: item.category || '', barcode: item.barcode || '' });
     setShowAddItem(true);
   };
 
@@ -90,7 +90,7 @@ export default function CatalogPage({ showToast }) {
         <div className="p-4 border-b flex items-center justify-between bg-amber-50">
           <h2 className="font-semibold text-amber-800">Items</h2>
           <button
-            onClick={() => { setShowAddItem(!showAddItem); setEditItem(null); setNewItem({ name: '', default_qty: '', default_unit: '', category: '' }); }}
+            onClick={() => { setShowAddItem(!showAddItem); setEditItem(null); setNewItem({ name: '', default_qty: '', default_unit: '', category: '', barcode: '' }); }}
             className="bg-amber-500 text-white text-sm px-3 py-1.5 rounded-xl hover:bg-amber-600 transition-colors"
           >
             + Add Item
@@ -135,6 +135,16 @@ export default function CatalogPage({ showToast }) {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
                   placeholder="Bread / Pastry / Cake"
                 />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-gray-500 font-medium">Barcode (GS1/EAN/UPC) — optional</label>
+                <input
+                  type="text" value={newItem.barcode}
+                  onChange={e => setNewItem(p => ({ ...p, barcode: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  placeholder="e.g. 8901234567890"
+                />
+                <p className="text-xs text-gray-400 mt-0.5">Scan the barcode on the product and paste the number here</p>
               </div>
             </div>
             <div className="flex gap-2">

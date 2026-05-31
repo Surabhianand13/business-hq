@@ -102,10 +102,13 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
         await qr.start(
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
+          async (decodedText) => {
+            stopScanner();
+            setShowScanner(false);
+
+            // Try JSON first (our QR codes)
             try {
               const data = JSON.parse(decodedText);
-              stopScanner();
               setFormInitial({
                 item_name: data.item_name || '',
                 qty: data.default_qty || '',
@@ -114,9 +117,30 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
                 note: '',
               });
               setShowForm(true);
-              setShowScanner(false);
+              return;
+            } catch {}
+
+            // Otherwise treat as barcode (GS1/EAN/UPC) — look up in catalog
+            try {
+              const res = await apiFetch(`/api/items/barcode/${encodeURIComponent(decodedText.trim())}`);
+              if (res.ok) {
+                const item = await res.json();
+                setFormInitial({
+                  item_name: item.name,
+                  qty: item.default_qty || '',
+                  unit: item.default_unit || '',
+                  destination: '',
+                  note: '',
+                });
+                setShowForm(true);
+              } else {
+                // Barcode not in catalog — let them fill manually
+                setScanError(`Barcode "${decodedText}" not found in catalog. Add it via Catalog → Edit item → Barcode field.`);
+                setShowScanner(true);
+              }
             } catch {
-              setScanError('Invalid QR code data');
+              setScanError('Could not look up barcode. Check your connection.');
+              setShowScanner(true);
             }
           },
           () => {}
