@@ -99,25 +99,40 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
         const { Html5Qrcode } = await import('html5-qrcode');
         const qr = new Html5Qrcode(scannerDivId);
         scannerRef.current = qr;
+        const { Html5QrcodeSupportedFormats } = await import('html5-qrcode');
         await qr.start(
           { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.QR_CODE,
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+            ],
+          },
           async (decodedText) => {
             stopScanner();
             setShowScanner(false);
 
-            // Try JSON first (our QR codes)
+            // Try JSON first (our QR codes) — must be an object with item_name
             try {
               const data = JSON.parse(decodedText);
-              setFormInitial({
-                item_name: data.item_name || '',
-                qty: data.default_qty || '',
-                unit: data.unit || '',
-                destination: '',
-                note: '',
-              });
-              setShowForm(true);
-              return;
+              if (data && typeof data === 'object' && data.item_name) {
+                setFormInitial({
+                  item_name: data.item_name || '',
+                  qty: data.default_qty || '',
+                  unit: data.unit || '',
+                  destination: '',
+                  note: '',
+                });
+                setShowForm(true);
+                return;
+              }
             } catch {}
 
             // Otherwise treat as barcode (GS1/EAN/UPC) — look up in catalog
