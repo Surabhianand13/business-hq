@@ -2,12 +2,14 @@ import { apiFetch, exportUrl } from '../api.js';
 import React, { useState, useEffect, useRef } from 'react';
 import DispatchForm from '../components/DispatchForm.jsx';
 import DispatchList from '../components/DispatchList.jsx';
+import MultiStoreForm from '../components/MultiStoreForm.jsx';
 
 export default function DispatchPage({ supervisor, showToast, onClose }) {
   const [session, setSession] = useState(null);
   const [entries, setEntries] = useState([]);
   const [destinations, setDestinations] = useState([]);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);   // single-store form
+  const [showMulti, setShowMulti] = useState(false); // multi-store form
   const [formInitial, setFormInitial] = useState(null);
   const [editEntry, setEditEntry] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
@@ -67,6 +69,7 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
 
   const handleAdded = () => {
     setShowForm(false);
+    setShowMulti(false);
     setFormInitial(null);
     setEditEntry(null);
     if (session) loadEntries(session.id);
@@ -234,21 +237,28 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
       </div>
 
       {/* Action buttons */}
-      {!locked && !showForm && (
-        <div className="grid grid-cols-2 gap-3 mb-4">
+      {!locked && !showForm && !showMulti && (
+        <div className="grid grid-cols-3 gap-2 mb-4">
           <button
             onClick={startScanner}
             className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-4 rounded-2xl flex flex-col items-center gap-1 transition-colors shadow-sm"
           >
             <span className="text-2xl">📷</span>
-            <span className="text-sm">Scan QR Code</span>
+            <span className="text-xs text-center">Scan QR / Barcode</span>
           </button>
           <button
             onClick={() => { setFormInitial(null); setEditEntry(null); setShowForm(true); }}
             className="bg-white hover:bg-amber-50 border-2 border-amber-400 text-amber-700 font-semibold py-4 rounded-2xl flex flex-col items-center gap-1 transition-colors shadow-sm"
           >
             <span className="text-2xl">✏️</span>
-            <span className="text-sm">Add Manually</span>
+            <span className="text-xs text-center">Single Store</span>
+          </button>
+          <button
+            onClick={() => { setShowMulti(true); }}
+            className="bg-white hover:bg-amber-50 border-2 border-amber-400 text-amber-700 font-semibold py-4 rounded-2xl flex flex-col items-center gap-1 transition-colors shadow-sm"
+          >
+            <span className="text-2xl">🏪</span>
+            <span className="text-xs text-center">Multi Store</span>
           </button>
         </div>
       )}
@@ -282,6 +292,7 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
       )}
 
       {/* Form */}
+      {/* Single-store form */}
       {showForm && session && (
         <DispatchForm
           initialData={formInitial}
@@ -290,6 +301,16 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
           destinations={destinations}
           onAdded={(msg) => { handleAdded(); if (msg) showToast(msg); }}
           onCancel={() => { setShowForm(false); setFormInitial(null); setEditEntry(null); }}
+        />
+      )}
+
+      {/* Multi-store form */}
+      {showMulti && session && (
+        <MultiStoreForm
+          sessionId={session.id}
+          destinations={destinations}
+          onAdded={(msg) => { handleAdded(); if (msg) showToast(msg); }}
+          onCancel={() => setShowMulti(false)}
         />
       )}
 
