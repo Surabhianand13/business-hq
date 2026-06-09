@@ -21,11 +21,13 @@ const itemsRouter = require('./routes/items');
 const sessionsRouter = require('./routes/sessions');
 const entriesRouter = require('./routes/entries');
 const destinationsRouter = require('./routes/destinations');
+const pdfRouter = require('./routes/pdf');
 
 app.use('/api/items',        apiCors, authMiddleware, itemsRouter);
 app.use('/api/sessions',     apiCors, authMiddleware, sessionsRouter);
 app.use('/api/entries',      apiCors, authMiddleware, entriesRouter);
 app.use('/api/destinations', apiCors, authMiddleware, destinationsRouter);
+app.use('/api/sessions',     apiCors, authMiddleware, pdfRouter);
 
 // Serve built frontend in production
 if (process.env.NODE_ENV === 'production') {

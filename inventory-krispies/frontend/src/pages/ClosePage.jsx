@@ -6,7 +6,6 @@ export default function ClosePage({ sessionId, showToast, onBack, onNewDispatch 
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [locking, setLocking] = useState(false);
-  const [synced, setSynced] = useState(false);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -32,7 +31,6 @@ export default function ClosePage({ sessionId, showToast, onBack, onNewDispatch 
     setLocking(true);
     try {
       await apiFetch(`/api/sessions/${sessionId}/lock`, { method: 'POST' });
-      setSynced(true);
       showToast('✓ Dispatch submitted — synced to Google Sheets');
       loadData();
     } finally {
@@ -40,8 +38,15 @@ export default function ClosePage({ sessionId, showToast, onBack, onNewDispatch 
     }
   };
 
-  const handleExport = () => {
+  const handleExportCSV = () => {
     window.open(exportUrl(`/api/sessions/${sessionId}/export`), '_blank');
+  };
+
+  const handleDownloadPDF = (store) => {
+    const url = store
+      ? exportUrl(`/api/sessions/${sessionId}/pdf?store=${encodeURIComponent(store)}`)
+      : exportUrl(`/api/sessions/${sessionId}/pdf`);
+    window.open(url, '_blank');
   };
 
   if (loading) {
@@ -49,6 +54,14 @@ export default function ClosePage({ sessionId, showToast, onBack, onNewDispatch 
   }
 
   const locked = session?.locked === 1;
+
+  // Get unique stores that have entries
+  const stores = [...new Set(entries.map(e => e.destination).filter(Boolean))].sort();
+
+  const formatDate = (d) => {
+    if (!d) return '';
+    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4">
@@ -68,7 +81,7 @@ export default function ClosePage({ sessionId, showToast, onBack, onNewDispatch 
       {/* Summary table */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
         <div className="p-4 border-b bg-amber-50">
-          <h2 className="font-semibold text-amber-800">Summary — {session?.session_date}</h2>
+          <h2 className="font-semibold text-amber-800">Summary — {formatDate(session?.session_date)}</h2>
           <p className="text-xs text-gray-500 mt-0.5">
             {session?.supervisor_name} · {entries.length} item{entries.length !== 1 ? 's' : ''}
           </p>
@@ -100,9 +113,41 @@ export default function ClosePage({ sessionId, showToast, onBack, onNewDispatch 
         </div>
       </div>
 
+      {/* Delivery note PDFs — per store */}
+      {entries.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
+          <h3 className="font-semibold text-gray-800 mb-1">📄 Delivery Notes (PDF)</h3>
+          <p className="text-xs text-gray-400 mb-3">One PDF per store — print or share via WhatsApp for signature</p>
+          <div className="space-y-2">
+            {stores.map(store => (
+              <button
+                key={store}
+                onClick={() => handleDownloadPDF(store)}
+                className="w-full flex items-center justify-between bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl transition-colors text-sm font-medium"
+              >
+                <span>🏪 {store}</span>
+                <span className="text-xs text-amber-600 flex items-center gap-1">
+                  {entries.filter(e => e.destination === store).length} items · Download PDF ↓
+                </span>
+              </button>
+            ))}
+            {stores.length > 1 && (
+              <button
+                onClick={() => handleDownloadPDF(null)}
+                className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 px-4 py-3 rounded-xl transition-colors text-sm font-medium"
+              >
+                <span>📦 All Stores Combined</span>
+                <span className="text-xs text-gray-500">Download PDF ↓</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Export & submit buttons */}
       <div className="space-y-3">
         <button
-          onClick={handleExport}
+          onClick={handleExportCSV}
           className="w-full bg-white border-2 border-amber-400 text-amber-700 font-semibold py-3 rounded-2xl hover:bg-amber-50 transition-colors"
         >
           ⬇️ Export CSV

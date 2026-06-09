@@ -28,8 +28,15 @@ export default function HistoryPage({ showToast }) {
     window.open(exportUrl(`/api/sessions/${id}/export`), '_blank');
   };
 
+  const handlePDF = (id, store) => {
+    const url = store
+      ? exportUrl(`/api/sessions/${id}/pdf?store=${encodeURIComponent(store)}`)
+      : exportUrl(`/api/sessions/${id}/pdf`);
+    window.open(url, '_blank');
+  };
+
   const formatDate = (dateStr) => {
-    const d = new Date(dateStr + 'T00:00:00');
+    const d = new Date(dateStr);
     return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   };
 
@@ -63,6 +70,29 @@ export default function HistoryPage({ showToast }) {
 
             {expanded === s.id && (
               <div className="border-t">
+                {/* PDF per store */}
+                {(entries[s.id] || []).length > 0 && (() => {
+                  const stores = [...new Set((entries[s.id] || []).map(e => e.destination).filter(Boolean))].sort();
+                  return (
+                    <div className="px-4 pt-3 pb-1">
+                      <p className="text-xs text-gray-400 mb-1.5 font-medium">📄 Delivery Notes</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {stores.map(store => (
+                          <button key={store} onClick={() => handlePDF(s.id, store)}
+                            className="text-xs bg-amber-50 border border-amber-200 text-amber-700 px-2.5 py-1.5 rounded-lg hover:bg-amber-100 transition-colors">
+                            {store} PDF ↓
+                          </button>
+                        ))}
+                        {stores.length > 1 && (
+                          <button onClick={() => handlePDF(s.id, null)}
+                            className="text-xs bg-gray-50 border border-gray-200 text-gray-600 px-2.5 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                            All Stores ↓
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="px-4 pt-2 pb-1 flex justify-end">
                   <button
                     onClick={() => handleExport(s.id)}
