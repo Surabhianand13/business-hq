@@ -105,7 +105,15 @@ export default function MultiStoreForm({ sessionId, destinations, onAdded, onCan
           })
         )
       );
-      onAdded(`✓ ${itemName.trim()} — added to ${checkedStores.length} store${checkedStores.length > 1 ? 's' : ''}`);
+      const msg = `✓ ${itemName.trim()} — added to ${checkedStores.length} store${checkedStores.length > 1 ? 's' : ''}`;
+      // Reset form for next item — stay open so they can add more
+      setItemName('');
+      setUnit('');
+      setNote('');
+      const reset = {};
+      destinations.forEach(d => { reset[d.name] = { checked: false, qty: '' }; });
+      setStores(reset);
+      onAdded(msg);
     } catch {
       setError('Something went wrong');
     } finally {

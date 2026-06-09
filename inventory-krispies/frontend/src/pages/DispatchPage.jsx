@@ -16,6 +16,7 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
   const [scanError, setScanError] = useState('');
   const [loading, setLoading] = useState(true);
   const scannerRef = useRef(null);
+  const formRef = useRef(null);
   const scannerDivId = 'qr-reader';
 
   useEffect(() => {
@@ -190,7 +191,7 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
   };
 
   const formatDate = (dateStr) => {
-    const d = new Date(dateStr + 'T00:00:00');
+    const d = new Date(dateStr);
     return d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   };
 
@@ -247,14 +248,14 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
             <span className="text-xs text-center">Scan QR / Barcode</span>
           </button>
           <button
-            onClick={() => { setFormInitial(null); setEditEntry(null); setShowForm(true); }}
+            onClick={() => { setFormInitial(null); setEditEntry(null); setShowForm(true); setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }}
             className="bg-white hover:bg-amber-50 border-2 border-amber-400 text-amber-700 font-semibold py-4 rounded-2xl flex flex-col items-center gap-1 transition-colors shadow-sm"
           >
             <span className="text-2xl">✏️</span>
             <span className="text-xs text-center">Single Store</span>
           </button>
           <button
-            onClick={() => { setShowMulti(true); }}
+            onClick={() => { setShowMulti(true); setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }}
             className="bg-white hover:bg-amber-50 border-2 border-amber-400 text-amber-700 font-semibold py-4 rounded-2xl flex flex-col items-center gap-1 transition-colors shadow-sm"
           >
             <span className="text-2xl">🏪</span>
@@ -293,6 +294,7 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
 
       {/* Form */}
       {/* Single-store form */}
+      <div ref={formRef} />
       {showForm && session && (
         <DispatchForm
           initialData={formInitial}
@@ -309,7 +311,11 @@ export default function DispatchPage({ supervisor, showToast, onClose }) {
         <MultiStoreForm
           sessionId={session.id}
           destinations={destinations}
-          onAdded={(msg) => { handleAdded(); if (msg) showToast(msg); }}
+          onAdded={(msg) => {
+            if (session) loadEntries(session.id); // refresh list
+            if (msg) showToast(msg);
+            // form stays open for next item — reset is handled inside MultiStoreForm
+          }}
           onCancel={() => setShowMulti(false)}
         />
       )}
