@@ -10,6 +10,7 @@ export default function CatalogPage({ showToast }) {
   const [newItem, setNewItem] = useState({ name: '', default_qty: '', default_unit: '', category: '', barcode: '' });
   const [newDest, setNewDest] = useState('');
   const [showQR, setShowQR] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadItems();
@@ -67,6 +68,67 @@ export default function CatalogPage({ showToast }) {
     loadDestinations();
   };
 
+  const downloadTemplate = () => {
+    const csv = [
+      'name,default_qty,default_unit,category,barcode',
+      'Croissant,50,pcs,Pastry,',
+      'Milk Bread - Regular,30,loaf,Bread,8901234567890',
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'items-template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploading(true);
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) { showToast('CSV is empty'); return; }
+
+      const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+      const nameIdx     = headers.indexOf('name');
+      const qtyIdx      = headers.indexOf('default_qty');
+      const unitIdx     = headers.indexOf('default_unit');
+      const catIdx      = headers.indexOf('category');
+      const barcodeIdx  = headers.indexOf('barcode');
+
+      if (nameIdx === -1) { showToast('CSV must have a "name" column'); return; }
+
+      const parsed = lines.slice(1).map(line => {
+        // handle quoted fields
+        const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+        return {
+          name:         cols[nameIdx]    || '',
+          default_qty:  cols[qtyIdx]     || '1',
+          default_unit: cols[unitIdx]    || 'pcs',
+          category:     cols[catIdx]     || '',
+          barcode:      barcodeIdx >= 0 ? cols[barcodeIdx] : '',
+        };
+      }).filter(r => r.name);
+
+      if (parsed.length === 0) { showToast('No valid rows found'); return; }
+
+      const res = await apiFetch('/api/items/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: parsed }),
+      });
+      const result = await res.json();
+      showToast(`✓ ${result.inserted} items added${result.skipped ? `, ${result.skipped} skipped` : ''}`);
+      loadItems();
+    } catch (err) {
+      showToast('Failed to parse CSV — check the format');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (showQR) {
     return <QRPrintPage items={items} onClose={() => setShowQR(false)} />;
   }
@@ -83,6 +145,27 @@ export default function CatalogPage({ showToast }) {
         >
           🖨️ Print QR Codes
         </button>
+      </div>
+
+      {/* Bulk upload bar */}
+      <div className="bg-white rounded-2xl shadow-sm p-4 mb-4 flex flex-col gap-2">
+        <p className="text-sm font-semibold text-gray-700">Bulk Upload Items</p>
+        <p className="text-xs text-gray-400">Download the template, fill it in Excel or Google Sheets, then upload.</p>
+        <div className="flex gap-2 mt-1">
+          <button
+            onClick={downloadTemplate}
+            className="flex-1 border-2 border-amber-400 text-amber-700 font-medium py-2.5 rounded-xl text-sm hover:bg-amber-50 transition-colors"
+          >
+            ⬇️ Download Template
+          </button>
+          <label className={`flex-1 text-center font-medium py-2.5 rounded-xl text-sm cursor-pointer transition-colors ${uploading ? 'bg-amber-200 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}>
+            {uploading ? 'Uploading…' : '⬆️ Upload CSV'}
+            <input
+              type="file" accept=".csv,text/csv" className="hidden"
+              onChange={handleCSVUpload} disabled={uploading}
+            />
+          </label>
+        </div>
       </div>
 
       {/* Items section */}

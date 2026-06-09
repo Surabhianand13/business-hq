@@ -45,6 +45,35 @@ router.put('/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /api/items/bulk — insert multiple items from CSV upload
+router.post('/bulk', async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0)
+      return res.status(400).json({ error: 'items array is required' });
+
+    let inserted = 0;
+    let skipped = 0;
+    const errors = [];
+
+    for (const item of items) {
+      const name = (item.name || '').trim();
+      if (!name) { skipped++; continue; }
+      try {
+        await query(
+          'INSERT INTO items (name, default_qty, default_unit, category, barcode) VALUES ($1, $2, $3, $4, $5)',
+          [name, parseFloat(item.default_qty) || 1, item.default_unit || 'pcs', item.category || '', item.barcode || null]
+        );
+        inserted++;
+      } catch (e) {
+        errors.push(`"${name}": ${e.message}`);
+      }
+    }
+
+    res.json({ inserted, skipped, errors });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // DELETE /api/items/:id
 router.delete('/:id', async (req, res) => {
   try {
