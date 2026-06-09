@@ -29,11 +29,12 @@ app.use('/api/entries',      apiCors, authMiddleware, entriesRouter);
 app.use('/api/destinations', apiCors, authMiddleware, destinationsRouter);
 app.use('/api/sessions',     apiCors, authMiddleware, pdfRouter);
 
-// Serve built frontend in production
+// Serve built frontend in production (from frontend/dist — no copy step needed)
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'public')));
+  const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+  app.use(express.static(frontendDist));
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(frontendDist, 'index.html'));
   });
 }
 
