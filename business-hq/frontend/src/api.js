@@ -1,3 +1,6 @@
+// Backend API base URL
+const API_BASE = 'https://business-hq-backend.onrender.com';
+
 export function getToken() {
   return localStorage.getItem('auth_token') || '';
 }
@@ -10,9 +13,10 @@ export function clearToken() {
   localStorage.removeItem('auth_token');
 }
 
-// Drop-in replacement for fetch() that attaches the auth token header
+// Drop-in replacement for fetch() that attaches the auth token header and backend URL
 export async function apiFetch(url, options = {}) {
-  const res = await fetch(url, {
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+  const res = await fetch(fullUrl, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -26,6 +30,7 @@ export async function apiFetch(url, options = {}) {
 // For window.open export links — appends token as query param
 export function exportUrl(path) {
   const token = getToken();
-  const sep = path.includes('?') ? '&' : '?';
-  return `${path}${sep}token=${token}`;
+  const fullUrl = path.startsWith('http') ? path : `${API_BASE}${path}`;
+  const sep = fullUrl.includes('?') ? '&' : '?';
+  return `${fullUrl}${sep}token=${token}`;
 }

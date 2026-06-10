@@ -7,6 +7,9 @@ import CatalogPage from './pages/CatalogPage.jsx';
 import Toast from './components/Toast.jsx';
 import { setToken, getToken, clearToken } from './api.js';
 
+// Backend API base URL
+const API_BASE = 'https://business-hq-backend.onrender.com';
+
 export default function App() {
   const [authState, setAuthState] = useState('checking'); // checking | granted | denied
   const [supervisor, setSupervisor] = useState(() => localStorage.getItem('supervisor') || '');
@@ -35,7 +38,7 @@ export default function App() {
         // Clean key from URL immediately so it's not in browser history
         window.history.replaceState({}, '', window.location.pathname);
         // Retry up to 3x to handle Render cold start (~30s wake time)
-        const res = await tryFetch('/api/auth', {
+        const res = await tryFetch(`${API_BASE}/api/auth`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key: urlKey }),
@@ -52,7 +55,7 @@ export default function App() {
 
       // Already have a token saved — verify it still works
       if (getToken()) {
-        const res = await tryFetch('/api/items', {
+        const res = await tryFetch(`${API_BASE}/api/items`, {
           headers: { 'x-access-token': getToken() },
         });
         if (res?.ok) { setAuthState('granted'); return; }
