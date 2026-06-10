@@ -22,12 +22,14 @@ const sessionsRouter = require('./routes/sessions');
 const entriesRouter = require('./routes/entries');
 const destinationsRouter = require('./routes/destinations');
 const pdfRouter = require('./routes/pdf');
+const pricesRouter = require('./routes/prices');
 
 app.use('/api/items',        apiCors, authMiddleware, itemsRouter);
 app.use('/api/sessions',     apiCors, authMiddleware, sessionsRouter);
 app.use('/api/entries',      apiCors, authMiddleware, entriesRouter);
 app.use('/api/destinations', apiCors, authMiddleware, destinationsRouter);
 app.use('/api/sessions',     apiCors, authMiddleware, pdfRouter);
+app.use('/api/prices',       apiCors, authMiddleware, pricesRouter);
 
 // Serve built frontend in production (from frontend/dist — no copy step needed)
 if (process.env.NODE_ENV === 'production') {

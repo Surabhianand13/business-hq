@@ -22,9 +22,32 @@ router.post('/', async (req, res) => {
     const { rows: sess } = await query('SELECT * FROM dispatch_sessions WHERE id=$1', [session_id]);
     if (!sess.length) return res.status(404).json({ error: 'Session not found' });
     if (sess[0].locked) return res.status(403).json({ error: 'Session is locked' });
+
+    // Auto-lookup price for stores that have a price list
+    let unit_price = null;
+    if (destination) {
+      const { rows: priceRows } = await query(
+        `SELECT price FROM store_prices
+         WHERE store_name = $1 AND LOWER(item_name) = LOWER($2) LIMIT 1`,
+        [destination, item_name]
+      );
+      if (priceRows.length) {
+        unit_price = priceRows[0].price;
+      } else {
+        // Fuzzy match — check if item_name contains or is contained in the price list name
+        const { rows: fuzzy } = await query(
+          `SELECT price, item_name FROM store_prices
+           WHERE store_name = $1 AND (LOWER($2) LIKE '%' || LOWER(item_name) || '%' OR LOWER(item_name) LIKE '%' || LOWER($2) || '%')
+           ORDER BY LENGTH(item_name) DESC LIMIT 1`,
+          [destination, item_name]
+        );
+        if (fuzzy.length) unit_price = fuzzy[0].price;
+      }
+    }
+
     const { rows } = await query(
-      'INSERT INTO dispatch_entries (session_id, item_id, item_name, qty, unit, destination, note) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-      [session_id, item_id || null, item_name, qty, unit || null, destination || null, note || null]
+      'INSERT INTO dispatch_entries (session_id, item_id, item_name, qty, unit, destination, note, unit_price) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
+      [session_id, item_id || null, item_name, qty, unit || null, destination || null, note || null, unit_price]
     );
     res.status(201).json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }

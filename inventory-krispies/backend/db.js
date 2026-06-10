@@ -47,7 +47,42 @@ async function init() {
       name TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS store_prices (
+      id SERIAL PRIMARY KEY,
+      store_name TEXT NOT NULL,
+      item_name TEXT NOT NULL,
+      price REAL NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+
+  // Add unit_price column to entries if missing
+  await pool.query(`ALTER TABLE dispatch_entries ADD COLUMN IF NOT EXISTS unit_price REAL`).catch(() => {});
+
+  // Seed NSL prices if empty
+  const { rows: priceRows } = await pool.query("SELECT COUNT(*) as cnt FROM store_prices WHERE store_name='NSL'");
+  if (parseInt(priceRows[0].cnt) === 0) {
+    const nslPrices = [
+      ['Veg Puff', 14], ['Egg Puff', 17], ['Chicken Puff', 27], ['Samosa', 12],
+      ['Chicken Burger', 38], ['Chicken Pizza', 60], ['Chocohip Brownie', 60],
+      ['Bread Small', 28], ['Osmania Biscuits', 50], ['Chocolate Donuts', 43],
+      ['Choco chips Pastry Piece', 60], ['Chocolate Pastry Piece', 55],
+      ['Dilkush', 10], ['Dilpasand', 55], ['Chocolate Cool Cake - half kg', 400],
+      ['Cap', 50], ['Plain Cake', 75], ['Ghee Rava Cake', 75], ['Special Bun', 20],
+      ['Paneer Puff', 27], ['Cream Bun', 15], ['Choco Lava', 43], ['Veg Burger', 35],
+      ['Fresh Pineapple Pastry', 40], ['Rich Chocolate Pastry', 55], ['Moon Biscuits', 60],
+      ['Cocount Biscuit', 60], ['Chocochips Biscuit', 70], ['Milk Rusk', 40], ['Khari', 40],
+      ['Butter Scotch Pastry', 45], ['White forest Pastry', 40],
+      ['Chocolate Butter Cream Piece', 25], ['Pineapple Butter Cream Piece', 20],
+      ['Butter Scotch Butter Cream Piece', 25], ['Strawberry Butter Cream Piece', 20],
+      ['Vanilla Butter Cream Piece', 20], ['Chocolate Roll Cake', 30], ['Vanilla Roll Cake', 25],
+    ];
+    for (const [name, price] of nslPrices) {
+      await pool.query('INSERT INTO store_prices (store_name, item_name, price) VALUES ($1, $2, $3)', ['NSL', name, price]);
+    }
+    console.log('Seeded NSL prices');
+  }
 
   // Add barcode column if it doesn't exist (migration for existing DBs)
   await pool.query(`
