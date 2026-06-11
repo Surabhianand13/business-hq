@@ -4,7 +4,6 @@ import api from '../api';
 
 const STAGES = [
   { key: 'lead',              label: 'Lead',               color: '#6b7280', bg: '#f3f4f6', emoji: '🔵' },
-  { key: 'qualified',         label: 'Qualified',          color: '#3b82f6', bg: '#eff6ff', emoji: '⭐' },
   { key: 'meeting_scheduled', label: 'Meeting Scheduled',  color: '#06b6d4', bg: '#ecfeff', emoji: '📞' },
   { key: 'proposal',          label: 'Proposal Sent',      color: '#8b5cf6', bg: '#f5f3ff', emoji: '📝' },
   { key: 'negotiation',       label: 'Negotiation',        color: '#f59e0b', bg: '#fffbeb', emoji: '🤝' },
@@ -13,8 +12,14 @@ const STAGES = [
 ];
 
 const STAGE_PROBABILITY = {
-  lead: 10, qualified: 30, meeting_scheduled: 50, proposal: 60, negotiation: 80, won: 100, lost: 0
+  lead: 10, meeting_scheduled: 50, proposal: 60, negotiation: 80, won: 100, lost: 0
 };
+
+const DEAL_TITLE_OPTIONS = [
+  'Website Development',
+  'AI Tools',
+  'Others',
+];
 
 function formatCurrency(val) {
   return '₹' + Number(val || 0).toLocaleString('en-IN');
@@ -234,11 +239,29 @@ function DealCard({ deal, onEdit, onDelete, onMove }) {
         </div>
       )}
 
+      {/* Next follow-up date */}
+      {deal.next_followup_date && (
+        <div style={{ fontSize: '11px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span>🔔</span>
+          {(() => {
+            const fDate = new Date(deal.next_followup_date);
+            const today = new Date();
+            const isToday = fDate.toDateString() === today.toDateString();
+            const isPast = fDate < today && !isToday;
+            return (
+              <span style={{ fontWeight: '600', color: isPast ? '#ef4444' : isToday ? '#f59e0b' : '#6b7280', background: isPast ? '#fff0f0' : isToday ? '#fff7ed' : 'transparent', padding: isPast || isToday ? '1px 6px' : '0', borderRadius: '5px' }}>
+                Follow-up: {isToday ? 'Today!' : isPast ? `Overdue (${formatDate(deal.next_followup_date)})` : formatDate(deal.next_followup_date)}
+              </span>
+            );
+          })()}
+        </div>
+      )}
+
       {/* Expected close date */}
       {deal.expected_close_date && (
         <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
           <span>📅</span>
-          <span>Expected: {formatDate(deal.expected_close_date)}</span>
+          <span>Close: {formatDate(deal.expected_close_date)}</span>
         </div>
       )}
 
@@ -329,20 +352,25 @@ function KanbanColumn({ stage, deals, onEdit, onDelete, onMove }) {
 }
 
 const EMPTY_FORM = {
-  title: '', company: '', value: '', stage: 'lead', probability: 10,
-  expected_close_date: '', assignee_id: '', contact_name: '',
+  title: 'Website Development', title_custom: '', company: '', value: '', stage: 'lead', probability: 10,
+  expected_close_date: '', next_followup_date: '', assignee_id: '', contact_name: '',
   contact_email: '', contact_phone: '', notes: '',
   meeting_type: 'online', meeting_date: '', meeting_link: '', meeting_notes: ''
 };
 
 function DealModal({ deal, users, onClose, onSave }) {
+  const dealTitle = deal?.title || '';
+  const isCustomTitle = dealTitle && !DEAL_TITLE_OPTIONS.includes(dealTitle);
+
   const [form, setForm] = useState(deal ? {
-    title: deal.title || '',
+    title: isCustomTitle ? 'Others' : (dealTitle || 'Website Development'),
+    title_custom: isCustomTitle ? dealTitle : '',
     company: deal.company || '',
     value: deal.value || '',
     stage: deal.stage || 'lead',
     probability: deal.probability ?? 10,
     expected_close_date: deal.expected_close_date ? deal.expected_close_date.split('T')[0] : '',
+    next_followup_date: deal.next_followup_date ? deal.next_followup_date.split('T')[0] : '',
     assignee_id: deal.assignee_id || '',
     contact_name: deal.contact_name || '',
     contact_email: deal.contact_email || '',
@@ -370,12 +398,15 @@ function DealModal({ deal, users, onClose, onSave }) {
     e.preventDefault();
     setSaving(true);
     try {
+      const finalTitle = form.title === 'Others' ? (form.title_custom || 'Others') : form.title;
       await onSave({
         ...form,
+        title: finalTitle,
         value: parseFloat(form.value) || 0,
         probability: parseInt(form.probability) || 0,
         assignee_id: form.assignee_id || null,
         expected_close_date: form.expected_close_date || null,
+        next_followup_date: form.next_followup_date || null,
         meeting_date: form.stage === 'meeting_scheduled' && form.meeting_date ? form.meeting_date : null,
         meeting_type: form.stage === 'meeting_scheduled' ? (form.meeting_type || 'online') : '',
         meeting_link: form.stage === 'meeting_scheduled' ? (form.meeting_link || '') : '',
@@ -435,14 +466,26 @@ function DealModal({ deal, users, onClose, onSave }) {
           {/* Deal title + Company */}
           <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
             <div>
-              <label style={labelStyle}>Deal Title *</label>
-              <input
-                style={inputStyle}
+              <label style={labelStyle}>Deal Type *</label>
+              <select
+                style={{ ...inputStyle, cursor: 'pointer' }}
                 value={form.title}
                 onChange={e => handleChange('title', e.target.value)}
-                placeholder="e.g. AI Automation Suite"
                 required
-              />
+              >
+                {DEAL_TITLE_OPTIONS.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+              {form.title === 'Others' && (
+                <input
+                  style={{ ...inputStyle, marginTop: '8px' }}
+                  value={form.title_custom}
+                  onChange={e => handleChange('title_custom', e.target.value)}
+                  placeholder="Describe the deal type..."
+                  required
+                />
+              )}
             </div>
             <div>
               <label style={labelStyle}>Company Name *</label>
@@ -483,8 +526,17 @@ function DealModal({ deal, users, onClose, onSave }) {
             </div>
           </div>
 
-          {/* Probability + Expected close */}
+          {/* Next Follow-up + Probability */}
           <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+            <div>
+              <label style={labelStyle}>🔔 Next Follow-up Date</label>
+              <input
+                style={inputStyle}
+                type="date"
+                value={form.next_followup_date}
+                onChange={e => handleChange('next_followup_date', e.target.value)}
+              />
+            </div>
             <div>
               <label style={labelStyle}>Probability %</label>
               <input
@@ -495,15 +547,17 @@ function DealModal({ deal, users, onClose, onSave }) {
                 min="0" max="100"
               />
             </div>
-            <div>
-              <label style={labelStyle}>Expected Close Date</label>
-              <input
-                style={inputStyle}
-                type="date"
-                value={form.expected_close_date}
-                onChange={e => handleChange('expected_close_date', e.target.value)}
-              />
-            </div>
+          </div>
+
+          {/* Expected close */}
+          <div style={{ marginBottom: '14px' }}>
+            <label style={labelStyle}>Expected Close Date</label>
+            <input
+              style={inputStyle}
+              type="date"
+              value={form.expected_close_date}
+              onChange={e => handleChange('expected_close_date', e.target.value)}
+            />
           </div>
 
           {/* Assigned to */}

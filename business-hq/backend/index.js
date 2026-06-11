@@ -170,6 +170,7 @@ async function initDB() {
         meeting_date TIMESTAMP,
         meeting_link TEXT DEFAULT '',
         meeting_notes TEXT DEFAULT '',
+        next_followup_date DATE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -180,6 +181,9 @@ async function initDB() {
     await pool.query(`ALTER TABLE deals ADD COLUMN IF NOT EXISTS meeting_date TIMESTAMP`).catch(() => {});
     await pool.query(`ALTER TABLE deals ADD COLUMN IF NOT EXISTS meeting_link TEXT DEFAULT ''`).catch(() => {});
     await pool.query(`ALTER TABLE deals ADD COLUMN IF NOT EXISTS meeting_notes TEXT DEFAULT ''`).catch(() => {});
+    await pool.query(`ALTER TABLE deals ADD COLUMN IF NOT EXISTS next_followup_date DATE`).catch(() => {});
+    // Migrate removed 'qualified' stage to 'meeting_scheduled'
+    await pool.query(`UPDATE deals SET stage='meeting_scheduled' WHERE stage='qualified'`).catch(() => {});
 
     console.log('Tables created/verified');
 
@@ -490,14 +494,14 @@ async function seedData() {
 
     const seedDeals = [
       ['TechCorp Solutions', 'AI Automation Suite', 'lead', 85000, 10, 'John Smith', 'john@techcorp.com', '+91 98765 43210', ritesh?.id, 'Initial contact made via LinkedIn', '2026-07-15'],
-      ['GreenLeaf Retail', 'E-commerce AI Assistant', 'qualified', 45000, 30, 'Priya Patel', 'priya@greenleaf.com', '+91 87654 32109', sneha?.id, 'Demo scheduled for next week', '2026-06-30'],
+      ['GreenLeaf Retail', 'E-commerce AI Assistant', 'meeting_scheduled', 45000, 30, 'Priya Patel', 'priya@greenleaf.com', '+91 87654 32109', sneha?.id, 'Demo scheduled for next week', '2026-06-30'],
       ['FinanceFirst Bank', 'Customer Service Bot', 'proposal', 120000, 60, 'Rajesh Kumar', 'rajesh@financefirst.com', '+91 76543 21098', ritesh?.id, 'Proposal sent, awaiting board approval', '2026-06-20'],
       ['MediCare Health', 'Patient Engagement AI', 'negotiation', 95000, 80, 'Dr. Anita Shah', 'anita@medicare.com', '+91 65432 10987', sneha?.id, 'Finalizing contract terms', '2026-06-15'],
       ['EduTech Global', 'Learning Assistant Bot', 'won', 65000, 100, 'Michael Chen', 'michael@edutech.com', '+91 54321 09876', ritesh?.id, 'Contract signed! Onboarding next Monday', '2026-06-10'],
       ['RetailMax Chain', 'Inventory AI System', 'won', 78000, 100, 'Sunita Verma', 'sunita@retailmax.com', '+91 43210 98765', sneha?.id, 'Deployment in progress', '2026-06-05'],
       ['LogiTrans Co', 'Route Optimization AI', 'lost', 55000, 0, 'Amit Joshi', 'amit@logitrans.com', '+91 32109 87654', ritesh?.id, 'Went with competitor pricing', '2026-05-30'],
       ['StartupHub Inc', 'CRM Automation', 'lead', 32000, 10, 'Ravi Sharma', 'ravi@startuphub.com', '+91 21098 76543', sneha?.id, 'Referred by existing client', '2026-07-30'],
-      ['CloudServe Ltd', 'IT Helpdesk AI', 'qualified', 88000, 40, 'Nina Reddy', 'nina@cloudserve.com', '+91 10987 65432', ritesh?.id, 'Technical evaluation underway', '2026-07-10'],
+      ['CloudServe Ltd', 'IT Helpdesk AI', 'meeting_scheduled', 88000, 40, 'Nina Reddy', 'nina@cloudserve.com', '+91 10987 65432', ritesh?.id, 'Technical evaluation underway', '2026-07-10'],
       ['FoodChain Pro', 'Supply Chain AI', 'proposal', 110000, 55, 'Kiran Nair', 'kiran@foodchain.com', '+91 09876 54321', sneha?.id, 'Customized proposal being prepared', '2026-06-25'],
     ];
 

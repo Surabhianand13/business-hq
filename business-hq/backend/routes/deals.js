@@ -25,14 +25,14 @@ router.post('/', async (req, res) => {
     const {
       title, company, contact_name, contact_email, contact_phone,
       value, stage, probability, assignee_id, notes, expected_close_date,
-      meeting_type, meeting_date, meeting_link, meeting_notes
+      meeting_type, meeting_date, meeting_link, meeting_notes, next_followup_date
     } = req.body;
     const { rows } = await pool.query(
-      `INSERT INTO deals (title, company, contact_name, contact_email, contact_phone, value, stage, probability, assignee_id, notes, expected_close_date, meeting_type, meeting_date, meeting_link, meeting_notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id`,
+      `INSERT INTO deals (title, company, contact_name, contact_email, contact_phone, value, stage, probability, assignee_id, notes, expected_close_date, meeting_type, meeting_date, meeting_link, meeting_notes, next_followup_date)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
       [title, company, contact_name || null, contact_email || null, contact_phone || null,
        value || 0, stage || 'lead', probability || 10, assignee_id || null, notes || null,
-       expected_close_date || null, meeting_type || '', meeting_date || null, meeting_link || '', meeting_notes || '']
+       expected_close_date || null, meeting_type || '', meeting_date || null, meeting_link || '', meeting_notes || '', next_followup_date || null]
     );
     const { rows: newDeal } = await pool.query(`${DEAL_SELECT} WHERE d.id = $1`, [rows[0].id]);
     res.json(newDeal[0]);
@@ -48,17 +48,17 @@ router.put('/:id', async (req, res) => {
     const {
       title, company, contact_name, contact_email, contact_phone,
       value, stage, probability, assignee_id, notes, expected_close_date,
-      meeting_type, meeting_date, meeting_link, meeting_notes
+      meeting_type, meeting_date, meeting_link, meeting_notes, next_followup_date
     } = req.body;
     await pool.query(
       `UPDATE deals SET title=$1, company=$2, contact_name=$3, contact_email=$4, contact_phone=$5,
        value=$6, stage=$7, probability=$8, assignee_id=$9, notes=$10, expected_close_date=$11,
-       meeting_type=$12, meeting_date=$13, meeting_link=$14, meeting_notes=$15, updated_at=NOW()
-       WHERE id=$16`,
+       meeting_type=$12, meeting_date=$13, meeting_link=$14, meeting_notes=$15, next_followup_date=$16, updated_at=NOW()
+       WHERE id=$17`,
       [title, company, contact_name || null, contact_email || null, contact_phone || null,
        value || 0, stage || 'lead', probability || 10, assignee_id || null, notes || null,
        expected_close_date || null, meeting_type || '', meeting_date || null, meeting_link || '',
-       meeting_notes || '', id]
+       meeting_notes || '', next_followup_date || null, id]
     );
     const { rows } = await pool.query(`${DEAL_SELECT} WHERE d.id = $1`, [id]);
     res.json(rows[0]);
