@@ -1,52 +1,453 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { init } = require('./db');
-const authMiddleware = require('./middleware/authMiddleware');
+const pool = require('./db');
+const bcrypt = require('bcryptjs');
 
 const app = express();
+const PORT = process.env.PORT || 3001;
+
+app.use(cors());
 app.use(express.json());
 
-// CORS only on /api routes — never on static files
-// (crossorigin attribute on Vite scripts sends Origin header which would
-//  block static asset loading if CORS runs globally)
-const apiCors = cors({ origin: true, credentials: true });
+// Routes
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const taskRoutes = require('./routes/tasks');
+const meetingRoutes = require('./routes/meetings');
+const updateRoutes = require('./routes/updates');
+const dashboardRoutes = require('./routes/dashboard');
 
-// Auth route — public (no token needed to get a token)
-const authRouter = require('./routes/auth');
-app.use('/api/auth', apiCors, authRouter);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/meetings', meetingRoutes);
+app.use('/api/updates', updateRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
-// All other API routes — require valid token
-const itemsRouter = require('./routes/items');
-const sessionsRouter = require('./routes/sessions');
-const entriesRouter = require('./routes/entries');
-const destinationsRouter = require('./routes/destinations');
-const pdfRouter = require('./routes/pdf');
-const pricesRouter = require('./routes/prices');
-
-app.use('/api/items',        apiCors, authMiddleware, itemsRouter);
-app.use('/api/sessions',     apiCors, authMiddleware, sessionsRouter);
-app.use('/api/entries',      apiCors, authMiddleware, entriesRouter);
-app.use('/api/destinations', apiCors, authMiddleware, destinationsRouter);
-app.use('/api/sessions',     apiCors, authMiddleware, pdfRouter);
-app.use('/api/prices',       apiCors, authMiddleware, pricesRouter);
-
-// Serve built frontend in production (from frontend/dist — no copy step needed)
+// Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
-  const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
-  app.use(express.static(frontendDist));
+  const frontendPath = path.join(__dirname, '../frontend/dist');
+  app.use(express.static(frontendPath));
   app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendDist, 'index.html'));
+    res.sendFile(path.join(frontendPath, 'index.html'));
   });
 }
 
-const PORT = process.env.PORT || 3001;
+// DB Setup + Seed
+async function initDB() {
+  try {
+    // Create tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) DEFAULT 'member',
+        avatar_color VARCHAR(20) DEFAULT '#6c63ff',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
 
-init().then(() => {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Bakery dispatch running on port ${PORT}`);
-  });
-}).catch(err => {
-  console.error('Failed to init DB:', err);
-  process.exit(1);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS workspaces (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        emoji VARCHAR(10) DEFAULT '📁',
+        color VARCHAR(20) DEFAULT '#6c63ff'
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_workspaces (
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        workspace_id INTEGER REFERENCES workspaces(id) ON DELETE CASCADE,
+        PRIMARY KEY (user_id, workspace_id)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(500) NOT NULL,
+        description TEXT,
+        status VARCHAR(20) DEFAULT 'todo',
+        priority VARCHAR(20) DEFAULT 'medium',
+        workspace_id INTEGER REFERENCES workspaces(id) ON DELETE SET NULL,
+        assignee_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        due_date DATE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS task_comments (
+        id SERIAL PRIMARY KEY,
+        task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS meetings (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(500) NOT NULL,
+        workspace_id INTEGER REFERENCES workspaces(id) ON DELETE SET NULL,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        start_time TIMESTAMPTZ NOT NULL,
+        duration_mins INTEGER DEFAULT 60,
+        meeting_url TEXT,
+        agenda TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS meeting_attendees (
+        meeting_id INTEGER REFERENCES meetings(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        PRIMARY KEY (meeting_id, user_id)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS updates (
+        id SERIAL PRIMARY KEY,
+        content TEXT NOT NULL,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        workspace_id INTEGER REFERENCES workspaces(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS update_likes (
+        update_id INTEGER REFERENCES updates(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        PRIMARY KEY (update_id, user_id)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS update_comments (
+        id SERIAL PRIMARY KEY,
+        update_id INTEGER REFERENCES updates(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    console.log('Tables created/verified');
+
+    // Seed data
+    await seedData();
+  } catch (err) {
+    console.error('DB init error:', err);
+    process.exit(1);
+  }
+}
+
+async function seedData() {
+  // Check if already seeded
+  const existing = await pool.query('SELECT COUNT(*) FROM users');
+  if (parseInt(existing.rows[0].count) > 0) {
+    console.log('DB already seeded, skipping');
+    return;
+  }
+
+  console.log('Seeding database...');
+
+  const password = await bcrypt.hash('businesshq123', 10);
+
+  // Users
+  const usersData = [
+    { name: 'Surabhi', email: 'surabhi@businesshq.com', role: 'admin', avatar_color: '#6c63ff' },
+    { name: 'Shilpa', email: 'shilpa@businesshq.com', role: 'member', avatar_color: '#f59e0b' },
+    { name: 'Tejas', email: 'tejas@businesshq.com', role: 'member', avatar_color: '#10b981' },
+    { name: 'Ritesh', email: 'ritesh@businesshq.com', role: 'member', avatar_color: '#3b82f6' },
+    { name: 'Sneha', email: 'sneha@businesshq.com', role: 'member', avatar_color: '#ec4899' }
+  ];
+
+  const userIds = {};
+  for (const u of usersData) {
+    const result = await pool.query(`
+      INSERT INTO users (name, email, password_hash, role, avatar_color)
+      VALUES ($1, $2, $3, $4, $5) RETURNING id
+    `, [u.name, u.email, password, u.role, u.avatar_color]);
+    userIds[u.name] = result.rows[0].id;
+  }
+
+  // Workspaces
+  const workspacesData = [
+    { name: 'Krispies', emoji: '🥐', color: '#f97316' },
+    { name: 'Solvv AI', emoji: '🤖', color: '#8b5cf6' },
+    { name: 'Krispies Content', emoji: '🎬', color: '#10b981' },
+    { name: 'Solvv Content', emoji: '🤖', color: '#6366f1' },
+    { name: "Surabhi's Channel", emoji: '📺', color: '#ec4899' }
+  ];
+
+  const wsIds = {};
+  for (const w of workspacesData) {
+    const result = await pool.query(`
+      INSERT INTO workspaces (name, emoji, color) VALUES ($1, $2, $3) RETURNING id
+    `, [w.name, w.emoji, w.color]);
+    wsIds[w.name] = result.rows[0].id;
+  }
+
+  // User <-> Workspace mappings
+  const mappings = [
+    // Surabhi (admin) - all workspaces
+    [userIds['Surabhi'], wsIds['Krispies']],
+    [userIds['Surabhi'], wsIds['Solvv AI']],
+    [userIds['Surabhi'], wsIds['Krispies Content']],
+    [userIds['Surabhi'], wsIds['Solvv Content']],
+    [userIds['Surabhi'], wsIds["Surabhi's Channel"]],
+    // Shilpa - Krispies
+    [userIds['Shilpa'], wsIds['Krispies']],
+    // Tejas - Marketing, Ads, Content
+    [userIds['Tejas'], wsIds['Krispies Content']],
+    [userIds['Tejas'], wsIds['Solvv Content']],
+    [userIds['Tejas'], wsIds["Surabhi's Channel"]],
+    // Ritesh - Solvv AI
+    [userIds['Ritesh'], wsIds['Solvv AI']],
+    // Sneha - Solvv AI
+    [userIds['Sneha'], wsIds['Solvv AI']]
+  ];
+
+  for (const [uid, wid] of mappings) {
+    await pool.query(
+      'INSERT INTO user_workspaces (user_id, workspace_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [uid, wid]
+    );
+  }
+
+  // Sample Tasks
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 86400000);
+  const nextWeek = new Date(now.getTime() + 7 * 86400000);
+  const yesterday = new Date(now.getTime() - 86400000);
+
+  const tasksData = [
+    {
+      title: 'Design new bakery menu layout',
+      description: 'Create a fresh seasonal menu design with updated pricing and new items.',
+      status: 'inprogress',
+      priority: 'high',
+      workspace: 'Krispies',
+      assignee: 'Shilpa',
+      creator: 'Surabhi',
+      due_date: tomorrow.toISOString().split('T')[0]
+    },
+    {
+      title: 'Set up social media posting schedule',
+      description: 'Plan and schedule posts for Instagram, Facebook, and Twitter for the next month.',
+      status: 'todo',
+      priority: 'medium',
+      workspace: 'Krispies Content',
+      assignee: 'Tejas',
+      creator: 'Surabhi',
+      due_date: nextWeek.toISOString().split('T')[0]
+    },
+    {
+      title: 'Q2 Sales Pipeline Review',
+      description: 'Review all active deals in the pipeline and update probability scores.',
+      status: 'todo',
+      priority: 'high',
+      workspace: 'Solvv AI',
+      assignee: 'Ritesh',
+      creator: 'Surabhi',
+      due_date: tomorrow.toISOString().split('T')[0]
+    },
+    {
+      title: 'Customer onboarding flow documentation',
+      description: 'Document the complete onboarding process for new Solvv AI customers.',
+      status: 'inprogress',
+      priority: 'medium',
+      workspace: 'Solvv AI',
+      assignee: 'Sneha',
+      creator: 'Sneha',
+      due_date: nextWeek.toISOString().split('T')[0]
+    },
+    {
+      title: 'Shoot product photography',
+      description: 'Take high-quality photos of new croissant varieties for the website.',
+      status: 'done',
+      priority: 'low',
+      workspace: 'Krispies Content',
+      assignee: 'Tejas',
+      creator: 'Shilpa',
+      due_date: yesterday.toISOString().split('T')[0]
+    },
+    {
+      title: 'Write investor pitch deck',
+      description: 'Prepare a compelling pitch deck for Series A funding round.',
+      status: 'inprogress',
+      priority: 'high',
+      workspace: 'Solvv AI',
+      assignee: 'Surabhi',
+      creator: 'Surabhi',
+      due_date: nextWeek.toISOString().split('T')[0]
+    },
+    {
+      title: 'YouTube channel branding update',
+      description: 'Refresh channel art, thumbnails, and intro animation.',
+      status: 'todo',
+      priority: 'medium',
+      workspace: "Surabhi's Channel",
+      assignee: 'Tejas',
+      creator: 'Surabhi',
+      due_date: nextWeek.toISOString().split('T')[0]
+    },
+    {
+      title: 'Monthly newsletter content',
+      description: 'Write and design the monthly customer newsletter.',
+      status: 'todo',
+      priority: 'low',
+      workspace: 'Krispies',
+      assignee: 'Shilpa',
+      creator: 'Shilpa',
+      due_date: nextWeek.toISOString().split('T')[0]
+    },
+    {
+      title: 'CRM data cleanup',
+      description: 'Remove duplicate entries and update contact information in the CRM.',
+      status: 'done',
+      priority: 'medium',
+      workspace: 'Solvv AI',
+      assignee: 'Ritesh',
+      creator: 'Ritesh',
+      due_date: yesterday.toISOString().split('T')[0]
+    },
+    {
+      title: 'Create promo video for Solvv launch',
+      description: '2-minute promotional video showcasing AI features.',
+      status: 'inprogress',
+      priority: 'high',
+      workspace: 'Solvv Content',
+      assignee: 'Tejas',
+      creator: 'Surabhi',
+      due_date: tomorrow.toISOString().split('T')[0]
+    }
+  ];
+
+  for (const t of tasksData) {
+    await pool.query(`
+      INSERT INTO tasks (title, description, status, priority, workspace_id, assignee_id, created_by, due_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [
+      t.title, t.description, t.status, t.priority,
+      wsIds[t.workspace], userIds[t.assignee], userIds[t.creator], t.due_date
+    ]);
+  }
+
+  // Sample Meetings
+  const todayMeeting = new Date();
+  todayMeeting.setHours(14, 0, 0, 0);
+
+  const tomorrowMeeting = new Date(tomorrow);
+  tomorrowMeeting.setHours(10, 0, 0, 0);
+
+  const meetingsData = [
+    {
+      title: 'Weekly Team Standup',
+      workspace: 'Krispies',
+      creator: 'Surabhi',
+      start_time: todayMeeting.toISOString(),
+      duration_mins: 30,
+      agenda: '1. Project updates\n2. Blockers\n3. This week\'s priorities',
+      attendees: ['Surabhi', 'Shilpa', 'Tejas']
+    },
+    {
+      title: 'Solvv AI Sales Review',
+      workspace: 'Solvv AI',
+      creator: 'Ritesh',
+      start_time: tomorrowMeeting.toISOString(),
+      duration_mins: 60,
+      agenda: '1. Pipeline review\n2. Deal updates\n3. Next steps',
+      attendees: ['Ritesh', 'Sneha', 'Surabhi']
+    },
+    {
+      title: 'Content Planning Session',
+      workspace: 'Krispies Content',
+      creator: 'Tejas',
+      start_time: new Date(now.getTime() + 2 * 86400000).toISOString(),
+      duration_mins: 45,
+      agenda: '1. Q3 content calendar\n2. Video scripts review\n3. Brand voice alignment',
+      attendees: ['Tejas', 'Surabhi']
+    }
+  ];
+
+  for (const m of meetingsData) {
+    const mResult = await pool.query(`
+      INSERT INTO meetings (title, workspace_id, created_by, start_time, duration_mins, agenda)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+    `, [m.title, wsIds[m.workspace], userIds[m.creator], m.start_time, m.duration_mins, m.agenda]);
+
+    for (const attendeeName of m.attendees) {
+      await pool.query(
+        'INSERT INTO meeting_attendees (meeting_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [mResult.rows[0].id, userIds[attendeeName]]
+      );
+    }
+  }
+
+  // Sample Updates
+  const updatesData = [
+    {
+      content: "Just finished the new croissant recipe! 🥐 The almond filling turned out amazing. Can't wait for everyone to try it at tomorrow's tasting session.",
+      user: 'Shilpa',
+      workspace: 'Krispies'
+    },
+    {
+      content: "Solvv AI closed 3 new enterprise deals this week! 🎉 Pipeline looking really healthy. Team crushing it!",
+      user: 'Ritesh',
+      workspace: 'Solvv AI'
+    },
+    {
+      content: "Posted 5 new recipe videos this month. Engagement is up 40% compared to last month. The behind-the-scenes content is really resonating.",
+      user: 'Tejas',
+      workspace: "Surabhi's Channel"
+    },
+    {
+      content: "Customer success team onboarded 12 new clients this month. NPS score hit 72! Sneha has been doing incredible work.",
+      user: 'Sneha',
+      workspace: 'Solvv AI'
+    },
+    {
+      content: "Excited to announce we're launching a new pastry line next month! Promo materials are in production.",
+      user: 'Surabhi',
+      workspace: 'Krispies Content'
+    }
+  ];
+
+  const updateIds = [];
+  for (const upd of updatesData) {
+    const result = await pool.query(`
+      INSERT INTO updates (content, user_id, workspace_id) VALUES ($1, $2, $3) RETURNING id
+    `, [upd.content, userIds[upd.user], wsIds[upd.workspace]]);
+    updateIds.push(result.rows[0].id);
+  }
+
+  // Some likes
+  if (updateIds.length >= 3) {
+    await pool.query('INSERT INTO update_likes (update_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [updateIds[0], userIds['Surabhi']]);
+    await pool.query('INSERT INTO update_likes (update_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [updateIds[0], userIds['Tejas']]);
+    await pool.query('INSERT INTO update_likes (update_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [updateIds[1], userIds['Surabhi']]);
+    await pool.query('INSERT INTO update_likes (update_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [updateIds[1], userIds['Sneha']]);
+    await pool.query('INSERT INTO update_likes (update_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [updateIds[2], userIds['Surabhi']]);
+  }
+
+  console.log('Seed data inserted successfully!');
+}
+
+// Start server
+app.listen(PORT, async () => {
+  console.log(`Business HQ backend running on port ${PORT}`);
+  await initDB();
 });

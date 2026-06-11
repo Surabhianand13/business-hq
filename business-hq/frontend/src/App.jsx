@@ -1,156 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import LoginPage from './pages/LoginPage.jsx';
-import DispatchPage from './pages/DispatchPage.jsx';
-import ClosePage from './pages/ClosePage.jsx';
-import HistoryPage from './pages/HistoryPage.jsx';
-import CatalogPage from './pages/CatalogPage.jsx';
-import Toast from './components/Toast.jsx';
-import { setToken, getToken, clearToken } from './api.js';
+import { useState, useEffect, createContext, useContext } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
+import TopBar from './components/TopBar';
+import Toast from './components/Toast';
+import LoginPage from './pages/LoginPage';
+import Dashboard from './pages/Dashboard';
+import TasksPage from './pages/TasksPage';
+import MeetingsPage from './pages/MeetingsPage';
+import UpdatesPage from './pages/UpdatesPage';
+import TeamPage from './pages/TeamPage';
 
-// Backend API base URL
-const API_BASE = 'https://business-hq-backend.onrender.com';
+export const AppContext = createContext(null);
+
+export function useApp() {
+  return useContext(AppContext);
+}
+
+function AppLayout({ children }) {
+  return (
+    <div className="flex h-screen overflow-hidden bg-[#f5f5f7]">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function ProtectedRoute({ children }) {
+  const { user } = useApp();
+  if (!user) return <Navigate to="/login" replace />;
+  return <AppLayout>{children}</AppLayout>;
+}
 
 export default function App() {
-  const [authState, setAuthState] = useState('checking'); // checking | granted | denied
-  const [supervisor, setSupervisor] = useState(() => localStorage.getItem('supervisor') || '');
-  const [page, setPage] = useState('dispatch');
-  const [toast, setToast] = useState(null);
-  const [sessionId, setSessionId] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('hq_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+  const [toasts, setToasts] = useState([]);
 
-  useEffect(() => {
-    async function tryFetch(url, options, retries = 3, delay = 4000) {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const res = await fetch(url, options);
-          return res;
-        } catch {
-          if (i < retries - 1) await new Promise(r => setTimeout(r, delay));
-        }
-      }
-      return null;
-    }
-
-    async function checkAccess() {
-      const params = new URLSearchParams(window.location.search);
-      const urlKey = params.get('access');
-
-      if (urlKey) {
-        // Clean key from URL immediately so it's not in browser history
-        window.history.replaceState({}, '', window.location.pathname);
-        // Retry up to 3x to handle Render cold start (~30s wake time)
-        const res = await tryFetch(`${API_BASE}/api/auth`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: urlKey }),
-        });
-        if (res?.ok) {
-          const { token } = await res.json();
-          setToken(token);
-          setAuthState('granted');
-          return;
-        }
-        setAuthState('denied');
-        return;
-      }
-
-      // Already have a token saved — verify it still works
-      if (getToken()) {
-        const res = await tryFetch(`${API_BASE}/api/items`, {
-          headers: { 'x-access-token': getToken() },
-        });
-        if (res?.ok) { setAuthState('granted'); return; }
-        clearToken();
-      }
-
-      setAuthState('denied');
-    }
-
-    checkAccess();
-  }, []);
-
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
-
-  const handleLogin = (name) => {
-    localStorage.setItem('supervisor', name);
-    setSupervisor(name);
-    setPage('dispatch');
-  };
-
-  if (authState === 'checking') {
-    return (
-      <div className="min-h-screen bg-amber-50 flex flex-col items-center justify-center gap-3">
-        <div className="text-4xl animate-bounce">🥐</div>
-        <div className="text-amber-600 font-medium">Starting up…</div>
-        <div className="text-gray-400 text-sm">This may take up to 30 seconds</div>
-      </div>
-    );
+  function login(userData, token) {
+    localStorage.setItem('hq_token', token);
+    localStorage.setItem('hq_user', JSON.stringify(userData));
+    setUser(userData);
   }
 
-  if (authState === 'denied') {
-    return (
-      <div className="min-h-screen bg-amber-50 flex flex-col items-center justify-center px-6 text-center">
-        <div className="text-6xl mb-4">🔒</div>
-        <h1 className="text-2xl font-bold text-amber-800 mb-2">Access Restricted</h1>
-        <p className="text-gray-500 text-sm max-w-xs">
-          This app is for Krispies staff only.<br />Please use the link shared by your manager.
-        </p>
-      </div>
-    );
+  function logout() {
+    localStorage.removeItem('hq_token');
+    localStorage.removeItem('hq_user');
+    setUser(null);
   }
 
-  if (!supervisor) {
-    return <LoginPage onLogin={handleLogin} />;
+  function addToast(message, type = 'success') {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
   }
-
-  const navItems = [
-    { key: 'dispatch', label: 'Dispatch', icon: '📦' },
-    { key: 'history', label: 'History', icon: '📋' },
-    { key: 'catalog', label: 'Catalog', icon: '🗂️' },
-  ];
 
   return (
-    <div className="min-h-screen flex flex-col pb-16">
-      <div className="flex-1">
-        {page === 'dispatch' && (
-          <DispatchPage
-            supervisor={supervisor}
-            showToast={showToast}
-            onClose={(sid) => { setSessionId(sid); setPage('close'); }}
-          />
-        )}
-        {page === 'close' && (
-          <ClosePage
-            sessionId={sessionId}
-            showToast={showToast}
-            onBack={() => setPage('dispatch')}
-            onNewDispatch={() => { setSessionId(null); setPage('dispatch'); }}
-          />
-        )}
-        {page === 'history' && <HistoryPage showToast={showToast} />}
-        {page === 'catalog' && <CatalogPage showToast={showToast} />}
-      </div>
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-40">
-        {navItems.map((item) => (
-          <button
-            key={item.key}
-            onClick={() => setPage(item.key)}
-            className={`flex-1 flex flex-col items-center py-3 text-xs font-medium transition-colors ${
-              page === item.key || (page === 'close' && item.key === 'dispatch')
-                ? 'text-amber-600 bg-amber-50'
-                : 'text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <span className="text-xl mb-0.5">{item.icon}</span>
-            {item.label}
-          </button>
-        ))}
-      </nav>
-
-      {toast && <Toast message={toast} />}
-    </div>
+    <AppContext.Provider value={{ user, login, logout, addToast }}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
+          <Route path="/meetings" element={<ProtectedRoute><MeetingsPage /></ProtectedRoute>} />
+          <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
+          <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50">
+          {toasts.map(t => <Toast key={t.id} message={t.message} type={t.type} />)}
+        </div>
+      </BrowserRouter>
+    </AppContext.Provider>
   );
 }
