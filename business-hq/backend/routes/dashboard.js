@@ -124,7 +124,7 @@ router.get('/', auth, async (req, res) => {
     `);
 
     // Team members with task counts
-    const teamResult = await pool.query(`
+    const teamMembersResult = await pool.query(`
       SELECT u.id, u.name, u.avatar_color, u.role,
         COUNT(CASE WHEN t.status != 'done' THEN 1 END) AS task_count
       FROM users u
@@ -146,7 +146,7 @@ router.get('/', auth, async (req, res) => {
       today_meetings: todayMeetingsResult.rows,
       recent_activity: activityResult.rows,
       recent_updates: updatesResult.rows,
-      team_members: teamResult.rows
+      team_members: teamMembersResult.rows
     });
   } catch (err) {
     console.error('Dashboard error:', err);
