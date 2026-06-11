@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Business HQ – Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #f5f5f7; color: #1a1a2e; min-height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0; width: 230px;
+      background: #ffffff; border-right: 1px solid #e8e8ed;
+      display: flex; flex-direction: column; padding: 24px 16px; z-index: 100;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.04);
+    }
+    .logo-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #6c63ff, #3b82f6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .logo { font-size: 17px; font-weight: 800; color: #1a1a2e; letter-spacing: -0.5px; }
+    .logo span { color: #6c63ff; }
+    .logo-sub { font-size: 11px; color: #a0a0b0; margin-bottom: 28px; padding-left: 44px; }
+
+    .nav-section { font-size: 10px; color: #c0c0d0; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin: 18px 0 8px 8px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+      border-radius: 10px; font-size: 13px; color: #6b7280; cursor: pointer;
+      margin-bottom: 2px; transition: all 0.15s; font-weight: 500;
+    }
+    .nav-item:hover { background: #f5f5f7; color: #1a1a2e; }
+    .nav-item.active { background: linear-gradient(135deg, #ede9ff, #e0eaff); color: #6c63ff; font-weight: 600; }
+    .nav-item .icon { width: 18px; text-align: center; font-size: 15px; }
+    .badge { margin-left: auto; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+    .badge.purple { background: #ede9ff; color: #6c63ff; }
+    .badge.red { background: #fff0f0; color: #ef4444; }
+    .badge.orange { background: #fff7ed; color: #f59e0b; }
+
+    .user-card {
+      margin-top: auto; background: linear-gradient(135deg, #f5f3ff, #eff6ff);
+      border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 10px;
+      border: 1px solid #e8e4ff;
+    }
+    .user-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #6c63ff, #3b82f6); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .user-name { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+    .user-role { font-size: 11px; color: #9ca3af; }
+
+    /* MAIN */
+    .main { margin-left: 230px; padding: 28px 32px; }
+
+    /* TOP BAR */
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .greeting h1 { font-size: 23px; font-weight: 800; color: #1a1a2e; letter-spacing: -0.5px; }
+    .greeting p { font-size: 13px; color: #9ca3af; margin-top: 3px; font-weight: 400; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .avatar-stack { display: flex; }
+    .av { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-left: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .av:first-child { margin-left: 0; }
+    .btn { padding: 9px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; }
+    .btn-primary { background: linear-gradient(135deg, #6c63ff, #3b82f6); color: #fff; box-shadow: 0 4px 14px rgba(108,99,255,0.3); }
+    .btn-ghost { background: #fff; color: #6b7280; border: 1px solid #e8e8ed; }
+    .icon-btn { width: 38px; height: 38px; background: #fff; border: 1px solid #e8e8ed; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); position: relative; }
+    .notif-dot { position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; background: #ef4444; border-radius: 50%; border: 1.5px solid #fff; }
+
+    /* PROJECT PILLS */
+    .pills { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+    .pill { padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .pill.active { background: linear-gradient(135deg, #6c63ff, #3b82f6); color: #fff; box-shadow: 0 4px 12px rgba(108,99,255,0.25); }
+    .pill:not(.active) { background: #fff; color: #6b7280; border: 1px solid #e8e8ed; }
+    .pill:not(.active):hover { border-color: #6c63ff; color: #6c63ff; }
+
+    /* MORNING BRIEF */
+    .morning-brief {
+      background: linear-gradient(135deg, #6c63ff 0%, #3b82f6 50%, #06b6d4 100%);
+      border-radius: 18px; padding: 22px 28px; margin-bottom: 22px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 8px 32px rgba(108,99,255,0.25);
+    }
+    .brief-left { display: flex; align-items: center; gap: 16px; }
+    .brief-icon { width: 52px; height: 52px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .brief-title { font-size: 17px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+    .brief-sub { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 3px; }
+    .brief-stats { display: flex; gap: 28px; }
+    .brief-stat { text-align: center; }
+    .brief-stat-val { font-size: 28px; font-weight: 900; color: #fff; letter-spacing: -1px; }
+    .brief-stat-label { font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 500; }
+    .brief-cta { background: rgba(255,255,255,0.95); color: #6c63ff; padding: 11px 22px; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; font-family: 'Inter', sans-serif; box-shadow: 0 4px 14px rgba(0,0,0,0.1); white-space: nowrap; }
+
+    /* STATS */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
+    .stat-card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #f0f0f5; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+    .stat-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .stat-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .stat-change { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 700; }
+    .stat-change.up { background: #f0fdf4; color: #16a34a; }
+    .stat-change.warn { background: #fff7ed; color: #d97706; }
+    .stat-change.red { background: #fff0f0; color: #ef4444; }
+    .stat-val { font-size: 32px; font-weight: 900; color: #1a1a2e; letter-spacing: -1px; }
+    .stat-label { font-size: 12px; color: #9ca3af; margin-top: 3px; font-weight: 500; }
+    .stat-bar { height: 4px; background: #f0f0f5; border-radius: 4px; margin-top: 16px; overflow: hidden; }
+    .stat-bar-fill { height: 100%; border-radius: 4px; }
+
+    /* MAIN GRID */
+    .grid-2 { display: grid; grid-template-columns: 1fr 370px; gap: 18px; margin-bottom: 18px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 320px; gap: 18px; }
+
+    /* CARD */
+    .card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #f0f0f5; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .card-title { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+    .card-action { font-size: 12px; color: #6c63ff; cursor: pointer; font-weight: 600; }
+
+    /* KANBAN */
+    .kanban { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .kanban-col { background: #f9f9fb; border-radius: 12px; padding: 12px; }
+    .kanban-col-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+    .kcol-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .kanban-col-title { font-size: 11px; font-weight: 700; color: #9ca3af; letter-spacing: 0.5px; }
+    .kanban-count { background: #fff; color: #9ca3af; font-size: 11px; padding: 1px 8px; border-radius: 10px; margin-left: auto; border: 1px solid #e8e8ed; font-weight: 600; }
+    .task-card { background: #fff; border: 1px solid #f0f0f5; border-radius: 12px; padding: 13px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+    .task-card:hover { box-shadow: 0 4px 16px rgba(108,99,255,0.12); border-color: #d4d0ff; transform: translateY(-1px); }
+    .task-tag { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px; display: inline-block; margin-bottom: 7px; }
+    .task-title { font-size: 12px; font-weight: 600; color: #1a1a2e; margin-bottom: 10px; line-height: 1.5; }
+    .task-footer { display: flex; align-items: center; justify-content: space-between; }
+    .task-due { font-size: 10px; color: #9ca3af; display: flex; align-items: center; gap: 3px; font-weight: 500; }
+    .task-due.urgent { color: #ef4444; background: #fff0f0; padding: 2px 7px; border-radius: 6px; }
+    .task-assignee { width: 22px; height: 22px; border-radius: 50%; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .progress-bar { height: 4px; background: #f0f0f5; border-radius: 4px; margin: 6px 0; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; }
+
+    /* MEETINGS */
+    .meeting-item { display: flex; gap: 14px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #f5f5f7; }
+    .meeting-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .meeting-time-col { text-align: right; min-width: 44px; }
+    .meeting-time { font-size: 12px; font-weight: 700; color: #6c63ff; }
+    .meeting-dur { font-size: 10px; color: #c0c0d0; font-weight: 500; }
+    .meeting-body { flex: 1; }
+    .meeting-title { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+    .meeting-meta { font-size: 11px; color: #9ca3af; margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .meeting-tag { padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+    .meeting-avatars { display: flex; }
+    .m-av { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #fff; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-left: -5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .m-av:first-child { margin-left: 0; }
+    .join-btn { padding: 6px 14px; background: linear-gradient(135deg, #6c63ff, #3b82f6); color: #fff; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; border: none; font-family: 'Inter', sans-serif; margin-top: 8px; box-shadow: 0 3px 10px rgba(108,99,255,0.3); }
+    .live-badge { display: inline-flex; align-items: center; gap: 5px; background: #f0fdf4; color: #16a34a; font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px; margin-bottom: 4px; }
+    .live-dot { width: 6px; height: 6px; background: #16a34a; border-radius: 50%; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ACTIVITY */
+    .activity-item { display: flex; gap: 10px; margin-bottom: 14px; }
+    .act-avatar { width: 30px; height: 30px; border-radius: 50%; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .act-body { flex: 1; }
+    .act-text { font-size: 12px; color: #6b7280; line-height: 1.5; font-weight: 400; }
+    .act-text strong { color: #1a1a2e; font-weight: 600; }
+    .act-time { font-size: 10px; color: #c0c0d0; margin-top: 2px; font-weight: 500; }
+    .act-tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; font-weight: 600; }
+
+    /* UPDATES */
+    .update-card { border-radius: 12px; padding: 14px; margin-bottom: 10px; border: 1px solid #f0f0f5; background: #fff; }
+    .update-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .update-avatar { width: 26px; height: 26px; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .update-name { font-size: 12px; font-weight: 700; color: #1a1a2e; }
+    .update-time { font-size: 10px; color: #c0c0d0; }
+    .update-text { font-size: 12px; color: #6b7280; line-height: 1.6; }
+    .update-actions { display: flex; gap: 14px; margin-top: 10px; }
+    .update-action { font-size: 11px; color: #9ca3af; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+    .update-action:hover { color: #6c63ff; }
+
+    /* TEAM */
+    .team-member { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f5f5f7; }
+    .team-member:last-child { border-bottom: none; }
+    .tm-avatar-wrap { position: relative; }
+    .tm-avatar { width: 36px; height: 36px; border-radius: 50%; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .online { position: absolute; bottom: 1px; right: 1px; width: 9px; height: 9px; border-radius: 50%; background: #22c55e; border: 2px solid #fff; }
+    .offline { position: absolute; bottom: 1px; right: 1px; width: 9px; height: 9px; border-radius: 50%; background: #d1d5db; border: 2px solid #fff; }
+    .tm-name { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+    .tm-role { font-size: 11px; color: #9ca3af; font-weight: 400; }
+    .tm-tasks { text-align: right; }
+    .tm-count { font-size: 16px; font-weight: 800; color: #1a1a2e; }
+    .tm-label { font-size: 10px; color: #c0c0d0; font-weight: 500; }
+
+    /* TAG COLORS */
+    .tag-purple { background: #ede9ff; color: #7c3aed; }
+    .tag-orange { background: #fff7ed; color: #d97706; }
+    .tag-green { background: #f0fdf4; color: #16a34a; }
+    .tag-blue { background: #eff6ff; color: #2563eb; }
+    .tag-pink { background: #fdf2f8; color: #db2777; }
+    .tag-teal { background: #f0fdfa; color: #0d9488; }
+
+    .admin-badge { font-size: 10px; background: #ede9ff; color: #6c63ff; padding: 2px 7px; border-radius: 6px; font-weight: 700; }
+
+    .divider { border: none; border-top: 1px solid #f5f5f7; margin: 14px 0; }
+
+    .upcoming-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f5f5f7; }
+    .upcoming-item:last-child { border-bottom: none; }
+    .upcoming-name { font-size: 12px; color: #6b7280; font-weight: 500; }
+    .upcoming-day { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo-wrap">
+    <div class="logo-icon">🏢</div>
+    <div class="logo">Business <span>HQ</span></div>
+  </div>
+  <div class="logo-sub">Workspace Hub</div>
+
+  <div class="nav-section">Main</div>
+  <div class="nav-item active"><span class="icon">🏠</span> Dashboard</div>
+  <div class="nav-item"><span class="icon">✅</span> My Tasks <span class="badge purple">12</span></div>
+  <div class="nav-item"><span class="icon">📅</span> Meetings <span class="badge orange">3</span></div>
+  <div class="nav-item"><span class="icon">📢</span> Updates <span class="badge red">5</span></div>
+  <div class="nav-item"><span class="icon">📊</span> Reports</div>
+
+  <div class="nav-section">Workspaces</div>
+  <div class="nav-item"><span class="icon">🥐</span> Krispies</div>
+  <div class="nav-item"><span class="icon">🤖</span> Solvv AI</div>
+  <div class="nav-item"><span class="icon">🎬</span> Content</div>
+  <div class="nav-item"><span class="icon">📺</span> Surabhi's Channel</div>
+
+  <div class="nav-section">Team</div>
+  <div class="nav-item"><span class="icon">👥</span> Members</div>
+  <div class="nav-item"><span class="icon">⚙️</span> Settings</div>
+
+  <div class="user-card">
+    <div class="user-avatar">S</div>
+    <div>
+      <div class="user-name">Surabhi</div>
+      <div class="user-role">Admin · All workspaces</div>
+    </div>
+    <div style="margin-left: auto; color: #c0c0d0; cursor: pointer;">⋯</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="greeting">
+      <h1>Good Morning, Surabhi ☀️</h1>
+      <p>Thursday, June 11 · You have 3 critical tasks and 2 meetings today</p>
+    </div>
+    <div class="topbar-right">
+      <div class="avatar-stack">
+        <div class="av" style="background: linear-gradient(135deg, #6c63ff, #3b82f6); color: #fff;">S</div>
+        <div class="av" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff;">R</div>
+        <div class="av" style="background: linear-gradient(135deg, #22c55e, #06b6d4); color: #fff;">A</div>
+        <div class="av" style="background: linear-gradient(135deg, #ec4899, #f43f5e); color: #fff;">P</div>
+        <div class="av" style="background: #f5f5f7; color: #9ca3af; font-size: 10px; border: 1px solid #e8e8ed;">+2</div>
+      </div>
+      <div class="icon-btn">🔔<span class="notif-dot"></span></div>
+      <button class="btn btn-ghost">🔍 Search</button>
+      <button class="btn btn-primary">+ New Task</button>
+    </div>
+  </div>
+
+  <!-- PILLS -->
+  <div class="pills">
+    <div class="pill active">All Workspaces</div>
+    <div class="pill">🥐 Krispies</div>
+    <div class="pill">🤖 Solvv AI</div>
+    <div class="pill">🎬 Krispies Content</div>
+    <div class="pill">🤖 Solvv Content</div>
+    <div class="pill">📺 Surabhi's Channel</div>
+  </div>
+
+  <!-- MORNING BRIEF -->
+  <div class="morning-brief">
+    <div class="brief-left">
+      <div class="brief-icon">⚡</div>
+      <div>
+        <div class="brief-title">Morning Briefing · Your Day at a Glance</div>
+        <div class="brief-sub">3 tasks due today · 1 meeting live now · 1 blocked item needs attention</div>
+      </div>
+    </div>
+    <div class="brief-stats">
+      <div class="brief-stat">
+        <div class="brief-stat-val">3</div>
+        <div class="brief-stat-label">Due Today</div>
+      </div>
+      <div class="brief-stat">
+        <div class="brief-stat-val">3</div>
+        <div class="brief-stat-label">Meetings</div>
+      </div>
+      <div class="brief-stat">
+        <div class="brief-stat-val">8</div>
+        <div class="brief-stat-label">In Progress</div>
+      </div>
+      <div class="brief-stat">
+        <div class="brief-stat-val">6</div>
+        <div class="brief-stat-label">Team Online</div>
+      </div>
+    </div>
+    <button class="brief-cta">Start Focus Mode ⚡</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon" style="background: #ede9ff;">✅</div>
+        <div class="stat-change up">↑ 12%</div>
+      </div>
+      <div class="stat-val">24</div>
+      <div class="stat-label">Active Tasks</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width: 60%; background: linear-gradient(90deg, #6c63ff, #3b82f6);"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon" style="background: #f0fdf4;">🎯</div>
+        <div class="stat-change up">↑ 4%</div>
+      </div>
+      <div class="stat-val">11</div>
+      <div class="stat-label">Completed This Week</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width: 75%; background: linear-gradient(90deg, #22c55e, #06b6d4);"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon" style="background: #eff6ff;">📅</div>
+        <div class="stat-change warn">Today</div>
+      </div>
+      <div class="stat-val">3</div>
+      <div class="stat-label">Meetings Today</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width: 40%; background: linear-gradient(90deg, #3b82f6, #06b6d4);"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon" style="background: #fff0f0;">⚠️</div>
+        <div class="stat-change red">1 blocked</div>
+      </div>
+      <div class="stat-val">6</div>
+      <div class="stat-label">Team Members Active</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width: 85%; background: linear-gradient(90deg, #f59e0b, #ef4444);"></div></div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="grid-2">
+
+    <!-- KANBAN -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 Task Board</div>
+        <div style="display:flex; gap: 8px; align-items: center;">
+          <select style="background: #f9f9fb; border: 1px solid #e8e8ed; color: #6b7280; font-size: 12px; padding: 6px 10px; border-radius: 8px; font-family: 'Inter', sans-serif; font-weight: 500;">
+            <option>All Workspaces</option>
+            <option>Krispies</option>
+            <option>Solvv AI</option>
+          </select>
+          <span class="card-action">+ Add Task</span>
+        </div>
+      </div>
+      <div class="kanban">
+
+        <!-- TO DO -->
+        <div class="kanban-col">
+          <div class="kanban-col-header">
+            <div class="kcol-dot" style="background: #d1d5db;"></div>
+            <span class="kanban-col-title">TO DO</span>
+            <span class="kanban-count">5</span>
+          </div>
+          <div class="task-card">
+            <div class="task-tag tag-orange">🥐 Krispies</div>
+            <div class="task-title">Create new dispatch schedule for Boduppal store</div>
+            <div class="task-footer">
+              <div class="task-due urgent">⚑ Due Today</div>
+              <div class="task-assignee" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff;">S</div>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="task-tag tag-purple">🤖 Solvv AI</div>
+            <div class="task-title">Review landing page copy for v2 launch</div>
+            <div class="task-footer">
+              <div class="task-due">📅 Jun 13</div>
+              <div class="task-assignee" style="background: linear-gradient(135deg, #6c63ff, #3b82f6); color: #fff;">R</div>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="task-tag tag-pink">📺 Channel</div>
+            <div class="task-title">Script — bakery behind the scenes vlog</div>
+            <div class="task-footer">
+              <div class="task-due">📅 Jun 14</div>
+              <div class="task-assignee" style="background: linear-gradient(135deg, #ec4899, #f43f5e); color: #fff;">S</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- IN PROGRESS -->
+        <div class="kanban-col">
+          <div class="kanban-col-header">
+            <div class="kcol-dot" style="background: #f59e0b;"></div>
+            <span class="kanban-col-title">IN PROGRESS</span>
+            <span class="kanban-count">4</span>
+          </div>
+          <div class="task-card" style="border-color: #d4d0ff;">
+            <div class="task-tag tag-purple">🤖 Solvv AI</div>
+            <div class="task-title">Build Business HQ – Task Manager MVP</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 65%; background: linear-gradient(90deg, #6c63ff, #3b82f6);"></div></div>
+            <div style="font-size: 10px; color: #9ca3af; margin-bottom: 8px; font-weight: 500;">65% complete</div>
+            <div class="task-footer">
+              <div class="task-due urgent">⚑ Due Today</div>
+              <div class="task-assignee" style="background: linear-gradient(135deg, #6c63ff, #3b82f6); color: #fff;">S</div>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="task-tag tag-green">🎬 Content</div>
+            <div class="task-title">Instagram reels for June product launch</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 40%; background: linear-gradient(90deg, #22c55e, #06b6d4);"></div></div>
+            <div style="font-size: 10px; color: #9ca3af; margin-bottom: 8px; font-weight: 500;">40% complete</div>
+            <div class="task-footer">
+              <div class="task-due">📅 Jun 15</div>
+              <div class="task-assignee" style="background: linear-gradient(135deg, #22c55e, #06b6d4); color: #fff;">A</div>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="task-tag tag-blue">🤖 Solvv</div>
+            <div class="task-title">AI chatbot integration for client portal</div>
+            <div class="task-footer">
+              <div class="task-due" style="color: #ef4444; background: #fff0f0; padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 600;">⚠️ Blocked</div>
+              <div class="task-assignee" style="background: linear-gradient(135deg, #3b82f6, #06b6d4); color: #fff;">P</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DONE -->
+        <div class="kanban-col">
+          <div class="kanban-col-header">
+            <div class="kcol-dot" style="background: #22c55e;"></div>
+            <span class="kanban-col-title">DONE</span>
+            <span class="kanban-count">3</span>
+          </div>
+          <div class="task-card" style="opacity: 0.55;">
+            <div class="task-tag tag-orange">🥐 Krispies</div>
+            <div class="task-title" style="text-decoration: line-through; color: #9ca3af;">NSL invoice pricing update</div>
+            <div class="task-footer">
+              <div style="font-size: 10px; color: #22c55e; font-weight: 600;">✓ Completed</div>
+              <div class="task-assignee" style="background: linear-gradient(135deg, #6c63ff, #3b82f6); color: #fff;">S</div>
+            </div>
+          </div>
+          <div class="task-card" style="opacity: 0.55;">
+            <div class="task-tag tag-purple">🤖 Solvv AI</div>
+            <div class="task-title" style="text-decoration: line-through; color: #9ca3af;">Deploy backend to Render</div>
+            <div class="task-footer">
+              <div style="font-size: 10px; color: #22c55e; font-weight: 600;">✓ Completed</div>
+              <div class="task-assignee" style="background: linear-gradient(135deg, #ec4899, #f43f5e); color: #fff;">S</div>
+            </div>
+          </div>
+          <div class="task-card" style="opacity: 0.55;">
+            <div class="task-tag tag-pink">📺 Channel</div>
+            <div class="task-title" style="text-decoration: line-through; color: #9ca3af;">Thumbnail – May recap video</div>
+            <div class="task-footer">
+              <div style="font-size: 10px; color: #22c55e; font-weight: 600;">✓ Completed</div>
+              <div class="task-assignee" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff;">R</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MEETINGS -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📅 Today's Meetings</div>
+        <span class="card-action">+ Schedule</span>
+      </div>
+
+      <div class="meeting-item">
+        <div class="meeting-time-col">
+          <div class="meeting-time">10:00</div>
+          <div class="meeting-dur">30 min</div>
+        </div>
+        <div class="meeting-body">
+          <div class="live-badge"><span class="live-dot"></span>LIVE NOW</div>
+          <div class="meeting-title">Krispies Weekly Ops Review</div>
+          <div class="meeting-meta">
+            <span class="meeting-tag tag-orange">🥐 Krispies</span>
+            <div class="meeting-avatars">
+              <div class="m-av" style="background: linear-gradient(135deg,#6c63ff,#3b82f6); color:#fff;">S</div>
+              <div class="m-av" style="background: linear-gradient(135deg,#f59e0b,#ef4444); color:#fff;">R</div>
+              <div class="m-av" style="background: linear-gradient(135deg,#22c55e,#06b6d4); color:#fff;">A</div>
+            </div>
+          </div>
+          <button class="join-btn">Join Meeting →</button>
+        </div>
+      </div>
+
+      <div class="meeting-item">
+        <div class="meeting-time-col">
+          <div class="meeting-time">12:30</div>
+          <div class="meeting-dur">45 min</div>
+        </div>
+        <div class="meeting-body">
+          <div class="meeting-title">Solvv AI Product Roadmap</div>
+          <div class="meeting-meta">
+            <span class="meeting-tag tag-purple">🤖 Solvv AI</span>
+            <div class="meeting-avatars">
+              <div class="m-av" style="background: linear-gradient(135deg,#6c63ff,#3b82f6); color:#fff;">S</div>
+              <div class="m-av" style="background: linear-gradient(135deg,#3b82f6,#06b6d4); color:#fff;">P</div>
+            </div>
+            <span style="color: #c0c0d0;">in 2h 30m</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="meeting-item">
+        <div class="meeting-time-col">
+          <div class="meeting-time">15:00</div>
+          <div class="meeting-dur">1 hour</div>
+        </div>
+        <div class="meeting-body">
+          <div class="meeting-title">Content Calendar Planning</div>
+          <div class="meeting-meta">
+            <span class="meeting-tag tag-pink">📺 Channel</span>
+            <div class="meeting-avatars">
+              <div class="m-av" style="background: linear-gradient(135deg,#6c63ff,#3b82f6); color:#fff;">S</div>
+              <div class="m-av" style="background: linear-gradient(135deg,#ec4899,#f43f5e); color:#fff;">M</div>
+            </div>
+            <span style="color: #c0c0d0;">in 5h</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+      <div style="font-size: 11px; font-weight: 700; color: #c0c0d0; letter-spacing: 0.5px; margin-bottom: 10px;">UPCOMING THIS WEEK</div>
+
+      <div class="upcoming-item">
+        <div>
+          <div class="upcoming-name">NSL Store Visit + Review</div>
+          <div class="upcoming-day">Friday, Jun 12 · 11:00 AM</div>
+        </div>
+        <span class="meeting-tag tag-orange" style="font-size: 10px;">🥐 Krispies</span>
+      </div>
+      <div class="upcoming-item">
+        <div>
+          <div class="upcoming-name">Solvv AI Client Demo</div>
+          <div class="upcoming-day">Saturday, Jun 13 · 3:00 PM</div>
+        </div>
+        <span class="meeting-tag tag-purple" style="font-size: 10px;">🤖 Solvv</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM GRID -->
+  <div class="grid-3">
+
+    <!-- TEAM ACTIVITY -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">⚡ Team Activity</div>
+        <span class="card-action">View all</span>
+      </div>
+      <div class="activity-item">
+        <div class="act-avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color:#fff;">R</div>
+        <div class="act-body">
+          <div class="act-text"><strong>Rahul</strong> completed "Social media post schedule"</div>
+          <div class="act-time">12 mins ago</div>
+          <div class="act-tag tag-green">🎬 Krispies Content</div>
+        </div>
+      </div>
+      <div class="activity-item">
+        <div class="act-avatar" style="background: linear-gradient(135deg, #3b82f6, #06b6d4); color:#fff;">P</div>
+        <div class="act-body">
+          <div class="act-text"><strong>Priya</strong> commented on "AI chatbot integration"</div>
+          <div class="act-time">34 mins ago</div>
+          <div class="act-tag tag-purple">🤖 Solvv AI</div>
+        </div>
+      </div>
+      <div class="activity-item">
+        <div class="act-avatar" style="background: linear-gradient(135deg, #22c55e, #06b6d4); color:#fff;">A</div>
+        <div class="act-body">
+          <div class="act-text"><strong>Ananya</strong> moved task to <strong>In Progress</strong></div>
+          <div class="act-time">1 hr ago</div>
+          <div class="act-tag tag-pink">📺 Channel</div>
+        </div>
+      </div>
+      <div class="activity-item">
+        <div class="act-avatar" style="background: linear-gradient(135deg, #6c63ff, #3b82f6); color:#fff;">S</div>
+        <div class="act-body">
+          <div class="act-text"><strong>You</strong> scheduled "Product Roadmap" meeting</div>
+          <div class="act-time">2 hrs ago</div>
+          <div class="act-tag tag-purple">🤖 Solvv AI</div>
+        </div>
+      </div>
+      <div class="activity-item">
+        <div class="act-avatar" style="background: linear-gradient(135deg, #ec4899, #f43f5e); color:#fff;">M</div>
+        <div class="act-body">
+          <div class="act-text"><strong>Meera</strong> uploaded 3 thumbnail designs</div>
+          <div class="act-time">3 hrs ago</div>
+          <div class="act-tag tag-pink">📺 Channel</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEAM UPDATES -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📢 Team Updates</div>
+        <span class="card-action">Post Update</span>
+      </div>
+
+      <div class="update-card" style="border-left: 3px solid #6c63ff;">
+        <div class="update-header">
+          <div class="update-avatar" style="background: linear-gradient(135deg,#6c63ff,#3b82f6); color:#fff;">S</div>
+          <span class="update-name">Surabhi</span>
+          <span class="update-time">· 1h ago</span>
+          <span class="meeting-tag tag-purple" style="margin-left: auto; font-size: 10px;">🤖 Solvv</span>
+        </div>
+        <div class="update-text">Business HQ is almost ready! Backend live on Render, frontend on Vercel. Full launch tomorrow. 🚀</div>
+        <div class="update-actions">
+          <div class="update-action">👍 4 Likes</div>
+          <div class="update-action">💬 2 Comments</div>
+        </div>
+      </div>
+
+      <div class="update-card" style="border-left: 3px solid #f59e0b;">
+        <div class="update-header">
+          <div class="update-avatar" style="background: linear-gradient(135deg,#f59e0b,#ef4444); color:#fff;">R</div>
+          <span class="update-name">Rahul</span>
+          <span class="update-time">· 2h ago</span>
+          <span class="meeting-tag tag-orange" style="margin-left: auto; font-size: 10px;">🥐 Krispies</span>
+        </div>
+        <div class="update-text">NSL store dispatch went smoothly! All 39 items delivered on time. New invoice format working perfectly ✅</div>
+        <div class="update-actions">
+          <div class="update-action">👍 6 Likes</div>
+          <div class="update-action">💬 1 Comment</div>
+        </div>
+      </div>
+
+      <div class="update-card" style="border-left: 3px solid #ec4899;">
+        <div class="update-header">
+          <div class="update-avatar" style="background: linear-gradient(135deg,#ec4899,#f43f5e); color:#fff;">A</div>
+          <span class="update-name">Ananya</span>
+          <span class="update-time">· 3h ago</span>
+          <span class="meeting-tag tag-pink" style="margin-left: auto; font-size: 10px;">📺 Channel</span>
+        </div>
+        <div class="update-text">June content calendar locked in! Posting 3x/week. Reels start next Monday 🎬</div>
+        <div class="update-actions">
+          <div class="update-action">👍 3 Likes</div>
+          <div class="update-action">💬 Reply</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEAM OVERVIEW -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">👥 Team</div>
+        <span class="card-action">Manage</span>
+      </div>
+      <div style="font-size: 11px; color: #c0c0d0; margin-bottom: 14px; font-weight: 500;">You can view all team tasks from here</div>
+
+      <div class="team-member">
+        <div class="tm-avatar-wrap">
+          <div class="tm-avatar" style="background: linear-gradient(135deg,#6c63ff,#3b82f6); color:#fff;">S</div>
+          <div class="online"></div>
+        </div>
+        <div style="flex: 1;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div class="tm-name">Surabhi</div>
+            <div class="admin-badge">Admin</div>
+          </div>
+          <div class="tm-role">All workspaces</div>
+        </div>
+        <div class="tm-tasks"><div class="tm-count">12</div><div class="tm-label">tasks</div></div>
+      </div>
+
+      <div class="team-member">
+        <div class="tm-avatar-wrap">
+          <div class="tm-avatar" style="background: linear-gradient(135deg,#f59e0b,#ef4444); color:#fff;">R</div>
+          <div class="online"></div>
+        </div>
+        <div style="flex: 1;">
+          <div class="tm-name">Rahul</div>
+          <div class="tm-role">🥐 Krispies</div>
+        </div>
+        <div class="tm-tasks"><div class="tm-count">6</div><div class="tm-label">tasks</div></div>
+      </div>
+
+      <div class="team-member">
+        <div class="tm-avatar-wrap">
+          <div class="tm-avatar" style="background: linear-gradient(135deg,#3b82f6,#06b6d4); color:#fff;">P</div>
+          <div class="online"></div>
+        </div>
+        <div style="flex: 1;">
+          <div class="tm-name">Priya</div>
+          <div class="tm-role">🤖 Solvv AI</div>
+        </div>
+        <div class="tm-tasks"><div class="tm-count">8</div><div class="tm-label">tasks</div></div>
+      </div>
+
+      <div class="team-member">
+        <div class="tm-avatar-wrap">
+          <div class="tm-avatar" style="background: linear-gradient(135deg,#22c55e,#06b6d4); color:#fff;">A</div>
+          <div class="offline"></div>
+        </div>
+        <div style="flex: 1;">
+          <div class="tm-name">Ananya</div>
+          <div class="tm-role">📺 Content</div>
+        </div>
+        <div class="tm-tasks"><div class="tm-count">5</div><div class="tm-label">tasks</div></div>
+      </div>
+
+      <div class="team-member">
+        <div class="tm-avatar-wrap">
+          <div class="tm-avatar" style="background: linear-gradient(135deg,#ec4899,#f43f5e); color:#fff;">M</div>
+          <div class="offline"></div>
+        </div>
+        <div style="flex: 1;">
+          <div class="tm-name">Meera</div>
+          <div class="tm-role">📺 Channel</div>
+        </div>
+        <div class="tm-tasks"><div class="tm-count">4</div><div class="tm-label">tasks</div></div>
+      </div>
+
+      <button class="btn btn-ghost" style="width: 100%; margin-top: 14px; font-size: 12px; font-family: 'Inter', sans-serif;">+ Invite Team Member</button>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
