@@ -340,6 +340,15 @@ export default function TasksPage() {
   const [editTask, setEditTask] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  // Auto-open modal if ?new=1 in URL (from TopBar "+ New Task" button)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1') {
+      setModalOpen(true);
+      window.history.replaceState({}, '', '/tasks');
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
   }, []);

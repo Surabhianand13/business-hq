@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
 
 const pageInfo = {
@@ -18,6 +18,7 @@ const teamAvatars = [
 
 export default function TopBar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useApp();
   const info = pageInfo[location.pathname] || { title: 'Business HQ', subtitle: '' };
 
@@ -142,6 +143,7 @@ export default function TopBar() {
 
         {/* New Task button */}
         <button
+          onClick={() => navigate('/tasks?new=1')}
           style={{
             background: 'linear-gradient(135deg, #6c63ff, #3b82f6)',
             color: 'white',
@@ -152,7 +154,8 @@ export default function TopBar() {
             fontWeight: '600',
             cursor: 'pointer',
             boxShadow: '0 4px 14px rgba(108,99,255,0.3)',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            fontFamily: 'inherit'
           }}
         >
           + New Task

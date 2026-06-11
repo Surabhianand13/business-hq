@@ -1,5 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
+import { useState, useEffect } from 'react';
+import api from '../api';
 
 function SectionLabel({ children }) {
   return (
@@ -75,6 +77,24 @@ export { Avatar };
 export default function Sidebar() {
   const { user, logout } = useApp();
   const navigate = useNavigate();
+  const [counts, setCounts] = useState({ tasks: 0, meetings: 0, updates: 0 });
+
+  useEffect(() => {
+    async function loadCounts() {
+      try {
+        const [tasks, meetings, updates] = await Promise.all([
+          api.getTasks(),
+          api.getMeetings(),
+          api.getUpdates()
+        ]);
+        const activeTasks = tasks.filter(t => t.status !== 'done').length;
+        const today = new Date().toDateString();
+        const todayMeetings = meetings.filter(m => new Date(m.start_time).toDateString() === today).length;
+        setCounts({ tasks: activeTasks, meetings: todayMeetings, updates: updates.length });
+      } catch {}
+    }
+    if (user) loadCounts();
+  }, [user]);
 
   function handleLogout() {
     logout();
@@ -115,9 +135,9 @@ export default function Sidebar() {
         {/* MAIN section */}
         <SectionLabel>MAIN</SectionLabel>
         <NavItem to="/" icon="🏠" label="Dashboard" end={true} />
-        <NavItem to="/tasks" icon="✅" label="My Tasks" badge={12} badgeColor="#6c63ff" />
-        <NavItem to="/meetings" icon="📅" label="Meetings" badge={3} badgeColor="#f97316" />
-        <NavItem to="/updates" icon="📢" label="Updates" badge={5} badgeColor="#ef4444" />
+        <NavItem to="/tasks" icon="✅" label="My Tasks" badge={counts.tasks || undefined} badgeColor="#6c63ff" />
+        <NavItem to="/meetings" icon="📅" label="Meetings" badge={counts.meetings || undefined} badgeColor="#f97316" />
+        <NavItem to="/updates" icon="📢" label="Updates" badge={counts.updates || undefined} badgeColor="#ef4444" />
         <NavItem to="/reports" icon="📊" label="Reports" />
 
         {/* WORKSPACES section */}
