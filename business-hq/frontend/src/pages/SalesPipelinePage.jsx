@@ -730,6 +730,113 @@ function DealModal({ deal, users, onClose, onSave }) {
   );
 }
 
+function startOfDay(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function FollowUpPanel({ deals, onEdit }) {
+  const today = startOfDay(new Date());
+  const tomorrow = new Date(today.getTime() + 86400000);
+  const weekEnd = new Date(today.getTime() + 7 * 86400000);
+
+  const withFollowup = deals.filter(d =>
+    d.next_followup_date && !['won', 'lost'].includes(d.stage)
+  );
+
+  const groups = { overdue: [], today: [], tomorrow: [], thisWeek: [] };
+  for (const d of withFollowup) {
+    const fd = startOfDay(d.next_followup_date);
+    if (fd < today) groups.overdue.push(d);
+    else if (fd.getTime() === today.getTime()) groups.today.push(d);
+    else if (fd.getTime() === tomorrow.getTime()) groups.tomorrow.push(d);
+    else if (fd <= weekEnd) groups.thisWeek.push(d);
+  }
+
+  const sections = [
+    { key: 'overdue',  label: 'Overdue',    emoji: '⚠️', color: '#ef4444', bg: '#fef2f2', deals: groups.overdue },
+    { key: 'today',    label: 'Today',      emoji: '🔥', color: '#f59e0b', bg: '#fffbeb', deals: groups.today },
+    { key: 'tomorrow', label: 'Tomorrow',   emoji: '📌', color: '#3b82f6', bg: '#eff6ff', deals: groups.tomorrow },
+    { key: 'thisWeek', label: 'This Week',  emoji: '📅', color: '#8b5cf6', bg: '#f5f3ff', deals: groups.thisWeek },
+  ];
+
+  const totalDue = groups.overdue.length + groups.today.length;
+
+  // Nothing to follow up
+  if (withFollowup.length === 0) return null;
+
+  return (
+    <div style={{
+      background: 'white', borderRadius: '16px', padding: '20px',
+      border: '1px solid #f0f0f5', boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
+      marginBottom: '20px'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '18px' }}>🔔</span>
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1a1a2e' }}>Follow-ups</h3>
+        </div>
+        {totalDue > 0 && (
+          <span style={{ fontSize: '12px', fontWeight: '700', color: '#ef4444', background: '#fef2f2', padding: '4px 12px', borderRadius: '20px' }}>
+            {totalDue} need attention now
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+        {sections.map(section => (
+          <div key={section.key} style={{ background: section.bg, borderRadius: '12px', padding: '14px', border: `1px solid ${section.color}20` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>{section.emoji}</span>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: section.color }}>{section.label}</span>
+              </div>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: section.color, background: 'white', padding: '1px 8px', borderRadius: '10px' }}>
+                {section.deals.length}
+              </span>
+            </div>
+            {section.deals.length === 0 ? (
+              <div style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', padding: '8px 0' }}>Nothing here ✓</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {section.deals.map(deal => (
+                  <button
+                    key={deal.id}
+                    onClick={() => onEdit(deal)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      width: '100%', padding: '8px 10px', borderRadius: '8px',
+                      background: 'white', border: 'none', cursor: 'pointer',
+                      textAlign: 'left', fontFamily: 'inherit',
+                      transition: 'box-shadow 0.15s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                  >
+                    {deal.assignee_name && (
+                      <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: deal.assignee_color || '#6c63ff', color: 'white', fontSize: '10px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {deal.assignee_name[0]}
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '12px', fontWeight: '700', color: '#1a1a2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deal.company}</div>
+                      <div style={{ fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {deal.contact_name || deal.title}{deal.contact_phone ? ` · ${deal.contact_phone}` : ''}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#374151', flexShrink: 0 }}>{formatCurrency(deal.value)}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RevenueForecast({ deals }) {
   const stageData = STAGES.filter(s => s.key !== 'lost').map(s => {
     const weighted = deals
@@ -938,6 +1045,9 @@ export default function SalesPipelinePage() {
         <StatCard emoji="📈" label="Win Rate" value={`${winRate}%`} sub={`${wonCount}W / ${lostCount}L`} color={winRate >= 50 ? '#10b981' : '#f59e0b'} />
         <StatCard emoji="📅" label="Avg Deal Size" value={formatCurrency(avgDealSize)} sub="Excl. lost" color="#8b5cf6" />
       </div>
+
+      {/* Follow-ups panel — start your day here */}
+      <FollowUpPanel deals={filteredDeals} onEdit={deal => setModal({ mode: 'edit', deal })} />
 
       {/* Kanban board */}
       <div style={{
