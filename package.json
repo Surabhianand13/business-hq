@@ -1,0 +1,8 @@
+{
+  "name": "business-hq",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd business-hq/backend && npm install && cd ../frontend && npm install && npm run build",
+    "start": "cd business-hq/backend && node index.js"
+  }
+}
