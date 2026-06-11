@@ -228,3 +228,44 @@ body {
   .tasks-header { flex-direction: column; align-items: flex-start !important; gap: 10px !important; }
   .tasks-header > button { align-self: flex-end; }
 }
+
+/* ── Mobile vs Desktop layout switching ── */
+.mobile-layout { display: none !important; }
+.desktop-layout { display: flex !important; }
+
+@media (max-width: 767px) {
+  .desktop-layout { display: none !important; }
+  .mobile-layout { display: flex !important; }
+}
+
+/* ── Kanban snap scroll ── */
+.kanban-board-desktop {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .kanban-board-desktop {
+    display: flex !important;
+    overflow-x: auto;
+    gap: 14px;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .kanban-board-desktop > * {
+    min-width: 280px;
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+}
+.pipeline-kanban {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.pipeline-kanban > * { scroll-snap-align: start; }
+
+/* ── Mobile safe area ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .mobile-bottom-safe { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+}

@@ -202,6 +202,165 @@ export default function Dashboard() {
     { label: "📺 Channel", value: "Surabhi's Channel" },
   ];
 
+  // ── MOBILE VIEW ──────────────────────────────────────────────────
+  if (isMobile) {
+    const priorityTasks = tasks
+      .filter(t => t.status !== 'done')
+      .sort((a, b) => {
+        const aToday = a.due_date && new Date(a.due_date).toDateString() === now.toDateString();
+        const bToday = b.due_date && new Date(b.due_date).toDateString() === now.toDateString();
+        if (aToday && !bToday) return -1;
+        if (!aToday && bToday) return 1;
+        if (a.priority === 'high' && b.priority !== 'high') return -1;
+        return 0;
+      }).slice(0, 5);
+
+    return (
+      <div>
+        {focusMode && <FocusMode tasks={tasks} meetings={data?.today_meetings} onClose={() => setFocusMode(false)} />}
+
+        {/* Stats grid 2x2 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+          {[
+            { icon: '✅', value: tasks.length, label: 'Total Tasks', color: '#6c63ff', bg: '#f5f3ff' },
+            { icon: '⚡', value: tasks.filter(t=>t.status==='inprogress').length, label: 'In Progress', color: '#f59e0b', bg: '#fffbeb' },
+            { icon: '🎯', value: tasks.filter(t=>t.status==='done').length, label: 'Completed', color: '#10b981', bg: '#f0fdf4' },
+            { icon: '📅', value: (data?.today_meetings||[]).length, label: 'Meetings', color: '#3b82f6', bg: '#eff6ff' },
+          ].map((s, i) => (
+            <div key={i} style={{ background: 'white', borderRadius: '16px', padding: '16px', border: '1px solid #f0f0f5', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', marginBottom: '10px' }}>{s.icon}</div>
+              <div style={{ fontSize: '28px', fontWeight: '900', color: '#1a1a2e', lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '3px', fontWeight: '500' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Focus mode banner */}
+        <button onClick={() => setFocusMode(true)} style={{
+          width: '100%', background: 'linear-gradient(135deg, #1e1b4b, #312e81, #1e40af)',
+          border: 'none', borderRadius: '18px', padding: '18px 20px', cursor: 'pointer',
+          marginBottom: '14px', fontFamily: 'inherit', textAlign: 'left',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        }}>
+          <div>
+            <div style={{ fontSize: '16px', fontWeight: '800', color: 'white', letterSpacing: '-0.3px' }}>⚡ Focus Mode</div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
+              {stats.tasks_due_today || 0} due today · {stats.meetings_today || 0} meetings
+            </div>
+          </div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>⚡</div>
+        </button>
+
+        {/* Today's meetings */}
+        {(data?.today_meetings||[]).length > 0 && (
+          <div style={{ background: 'white', borderRadius: '18px', padding: '16px', border: '1px solid #f0f0f5', marginBottom: '14px', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>📅 Today</div>
+              <button onClick={() => navigate('/meetings')} style={{ background: 'none', border: 'none', color: '#6c63ff', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>See all</button>
+            </div>
+            {(data.today_meetings).map(m => {
+              const start = new Date(m.start_time);
+              const end = new Date(start.getTime() + (m.duration_mins||30)*60000);
+              const live = now >= start && now <= end;
+              return (
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '12px', background: live ? '#f5f3ff' : '#f9f9fb', marginBottom: '8px', border: `1px solid ${live ? '#e8e4ff' : '#f0f0f5'}` }}>
+                  <div style={{ textAlign: 'center', minWidth: '48px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: live ? '#6c63ff' : '#374151' }}>{start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div style={{ fontSize: '10px', color: '#9ca3af' }}>{m.duration_mins}m</div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      {m.title}
+                      {live && <span style={{ fontSize: '9px', background: '#ef4444', color: 'white', padding: '2px 5px', borderRadius: '4px', fontWeight: '700' }}>LIVE</span>}
+                    </div>
+                    <div style={{ fontSize: '11px', color: m.workspace_color||'#6c63ff', marginTop: '2px' }}>{m.workspace_emoji} {m.workspace_name}</div>
+                  </div>
+                  <button onClick={() => m.meeting_url ? window.open(m.meeting_url,'_blank') : navigate('/meetings')} style={{ background: 'linear-gradient(135deg, #6c63ff, #3b82f6)', color: 'white', border: 'none', borderRadius: '10px', padding: '8px 14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>Join</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Priority tasks */}
+        <div style={{ background: 'white', borderRadius: '18px', padding: '16px', border: '1px solid #f0f0f5', marginBottom: '14px', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>🔥 Priority Tasks</div>
+            <button onClick={() => navigate('/tasks?new=1')} style={{ background: 'linear-gradient(135deg, #6c63ff, #3b82f6)', border: 'none', color: 'white', fontSize: '11px', fontWeight: '700', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>+ Add</button>
+          </div>
+          {priorityTasks.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#9ca3af', fontSize: '13px' }}>🎉 All done!</div>
+          ) : priorityTasks.map((t, i) => {
+            const isOverdue = t.due_date && new Date(t.due_date) < now;
+            const isToday = t.due_date && new Date(t.due_date).toDateString() === now.toDateString();
+            return (
+              <div key={t.id} onClick={() => navigate('/tasks')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 0', borderBottom: i < priorityTasks.length-1 ? '1px solid #f5f5f7' : 'none', cursor: 'pointer' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: t.status === 'inprogress' ? '#3b82f6' : '#d1d5db' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+                  <div style={{ fontSize: '11px', color: t.workspace_color||'#6c63ff', marginTop: '2px' }}>{t.workspace_emoji} {t.workspace_name}</div>
+                </div>
+                {(isOverdue || isToday) && (
+                  <span style={{ fontSize: '10px', fontWeight: '700', background: isOverdue ? '#fef2f2' : '#fff7ed', color: isOverdue ? '#ef4444' : '#f59e0b', padding: '3px 8px', borderRadius: '6px', flexShrink: 0 }}>
+                    {isOverdue ? 'Overdue' : 'Today'}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+          <button onClick={() => navigate('/tasks')} style={{ width: '100%', marginTop: '12px', padding: '11px', background: '#f5f3ff', border: 'none', borderRadius: '10px', color: '#6c63ff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>
+            View all tasks →
+          </button>
+        </div>
+
+        {/* Pipeline snapshot */}
+        <div style={{ background: 'white', borderRadius: '18px', padding: '16px', border: '1px solid #f0f0f5', marginBottom: '14px', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>🤖 Solvv Pipeline</div>
+            <button onClick={() => navigate('/pipeline')} style={{ background: 'none', border: 'none', color: '#6c63ff', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>View all</button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#1a1a2e' }}>{formatCurrency(pipelineValue)}</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>Pipeline value</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#10b981' }}>{formatCurrency(wonValue)}</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>Won revenue</div>
+            </div>
+          </div>
+          {topDeals.slice(0,3).map(d => (
+            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 12px', borderRadius: '10px', background: '#f9f9fb', marginBottom: '6px' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6c63ff', flexShrink: 0 }} />
+              <div style={{ flex: 1, fontSize: '13px', fontWeight: '600', color: '#1a1a2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.company}</div>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>{formatCurrency(d.value)}</div>
+            </div>
+          ))}
+          {topDeals.length === 0 && <div style={{ textAlign: 'center', padding: '12px', color: '#9ca3af', fontSize: '12px' }}>No active deals</div>}
+        </div>
+
+        {/* Team updates */}
+        {(data?.recent_updates||[]).length > 0 && (
+          <div style={{ background: 'white', borderRadius: '18px', padding: '16px', border: '1px solid #f0f0f5', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>📢 Team Updates</div>
+              <button onClick={() => navigate('/updates')} style={{ background: 'none', border: 'none', color: '#6c63ff', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>See all</button>
+            </div>
+            {(data.recent_updates).slice(0,3).map((u, i) => (
+              <div key={u.id||i} style={{ display: 'flex', gap: '10px', paddingBottom: '12px', marginBottom: '12px', borderBottom: i < 2 ? '1px solid #f5f5f7' : 'none' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: u.avatar_color||'#6c63ff', color: 'white', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{u.user_name?.[0]}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#1a1a2e' }}>{u.user_name} <span style={{ color: '#9ca3af', fontWeight: '400' }}>· {u.workspace_emoji} {u.workspace_name}</span></div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '3px', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{u.content}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{ fontFamily: 'Inter, sans-serif' }}>
       {focusMode && <FocusMode tasks={tasks} meetings={data?.today_meetings} onClose={() => setFocusMode(false)} />}

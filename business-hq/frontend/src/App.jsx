@@ -1,7 +1,9 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
+import BottomNav from './components/BottomNav';
+import MobileTopBar from './components/MobileTopBar';
 import Toast from './components/Toast';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
@@ -22,22 +24,39 @@ export function useApp() {
 function AppLayout({ children }) {
   const { sidebarOpen, setSidebarOpen } = useApp();
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f5f5f7' }}>
-      {/* Overlay for mobile */}
-      <div
-        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
-        onClick={() => setSidebarOpen(false)}
-      />
-      {/* Sidebar */}
-      <Sidebar />
-      {/* Main content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-        <TopBar />
-        <main className="page-main" style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+    <>
+      {/* ── DESKTOP LAYOUT (≥ 768px) ── */}
+      <div className="desktop-layout" style={{
+        display: 'flex', height: '100vh', overflow: 'hidden', background: '#f5f5f7'
+      }}>
+        <div
+          className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+          onClick={() => setSidebarOpen(false)}
+        />
+        <Sidebar />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+          <TopBar />
+          <main className="page-main" style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+            {children}
+          </main>
+        </div>
+      </div>
+
+      {/* ── MOBILE LAYOUT (< 768px) ── */}
+      <div className="mobile-layout" style={{
+        display: 'none', flexDirection: 'column',
+        height: '100vh', background: '#f5f5f7', overflow: 'hidden'
+      }}>
+        <MobileTopBar />
+        <main style={{
+          flex: 1, overflowY: 'auto',
+          padding: '16px 16px calc(80px + env(safe-area-inset-bottom)) 16px'
+        }}>
           {children}
         </main>
+        <BottomNav />
       </div>
-    </div>
+    </>
   );
 }
 
@@ -90,7 +109,8 @@ export default function App() {
           <Route path="/pipeline" element={<ProtectedRoute><SalesPipelinePage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50">
+        {/* Toasts */}
+        <div style={{ position: 'fixed', bottom: '90px', right: '16px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 9999 }}>
           {toasts.map(t => <Toast key={t.id} message={t.message} type={t.type} />)}
         </div>
       </BrowserRouter>
