@@ -57,7 +57,7 @@ router.get('/', auth, async (req, res) => {
 
 // POST /api/meetings
 router.post('/', auth, async (req, res) => {
-  const { title, workspace_id, start_time, duration_mins, meeting_url, agenda, attendee_ids } = req.body;
+  const { title, workspace_id, start_time, duration_mins, meeting_url, agenda, attendee_ids, external_attendees } = req.body;
 
   if (!title || !workspace_id || !start_time) {
     return res.status(400).json({ error: 'Title, workspace, and start time are required' });
@@ -65,10 +65,10 @@ router.post('/', auth, async (req, res) => {
 
   try {
     const result = await pool.query(`
-      INSERT INTO meetings (title, workspace_id, created_by, start_time, duration_mins, meeting_url, agenda)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO meetings (title, workspace_id, created_by, start_time, duration_mins, meeting_url, agenda, external_attendees)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
-    `, [title, workspace_id, req.user.id, start_time, duration_mins || 60, meeting_url || null, agenda || null]);
+    `, [title, workspace_id, req.user.id, start_time, duration_mins || 60, meeting_url || null, agenda || null, external_attendees || '']);
 
     const meeting = result.rows[0];
 
@@ -116,7 +116,7 @@ router.post('/', auth, async (req, res) => {
 // PUT /api/meetings/:id
 router.put('/:id', auth, async (req, res) => {
   const { id } = req.params;
-  const { title, workspace_id, start_time, duration_mins, meeting_url, agenda, attendee_ids } = req.body;
+  const { title, workspace_id, start_time, duration_mins, meeting_url, agenda, attendee_ids, external_attendees } = req.body;
 
   try {
     const existing = await pool.query('SELECT * FROM meetings WHERE id = $1', [id]);
@@ -133,9 +133,10 @@ router.put('/:id', auth, async (req, res) => {
         start_time = COALESCE($3, start_time),
         duration_mins = COALESCE($4, duration_mins),
         meeting_url = $5,
-        agenda = $6
+        agenda = $6,
+        external_attendees = COALESCE($8, external_attendees)
       WHERE id = $7
-    `, [title, workspace_id, start_time, duration_mins, meeting_url || null, agenda || null, id]);
+    `, [title, workspace_id, start_time, duration_mins, meeting_url || null, agenda || null, id, external_attendees !== undefined ? external_attendees : null]);
 
     if (attendee_ids) {
       await pool.query('DELETE FROM meeting_attendees WHERE meeting_id = $1', [id]);

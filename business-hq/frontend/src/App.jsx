@@ -9,6 +9,8 @@ import TasksPage from './pages/TasksPage';
 import MeetingsPage from './pages/MeetingsPage';
 import UpdatesPage from './pages/UpdatesPage';
 import TeamPage from './pages/TeamPage';
+import SettingsPage from './pages/SettingsPage';
+import ReportsPage from './pages/ReportsPage';
 
 export const AppContext = createContext(null);
 
@@ -73,6 +75,8 @@ export default function App() {
           <Route path="/meetings" element={<ProtectedRoute><MeetingsPage /></ProtectedRoute>} />
           <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
           <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50">

@@ -3,6 +3,27 @@ import { useApp } from '../App';
 import { useState, useEffect } from 'react';
 import api from '../api';
 
+function WorkspaceItem({ icon, label, wsName }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate(`/tasks?workspace=${encodeURIComponent(wsName)}`)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 10px',
+        borderRadius: '10px', textDecoration: 'none', marginBottom: '2px', fontWeight: '500',
+        fontSize: '14px', background: 'transparent', border: 'none', cursor: 'pointer',
+        color: '#4b5563', width: '100%', fontFamily: 'inherit', textAlign: 'left',
+        transition: 'all 0.15s ease'
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = '#f5f5f7'}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    >
+      <span style={{ fontSize: '16px' }}>{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
 function SectionLabel({ children }) {
   return (
     <div style={{
@@ -142,10 +163,10 @@ export default function Sidebar() {
 
         {/* WORKSPACES section */}
         <SectionLabel>WORKSPACES</SectionLabel>
-        <NavItem to="/tasks" icon="🥐" label="Krispies" />
-        <NavItem to="/tasks" icon="🤖" label="Solvv AI" />
-        <NavItem to="/tasks" icon="🎬" label="Content" />
-        <NavItem to="/tasks" icon="📺" label="Surabhi's Channel" />
+        <WorkspaceItem icon="🥐" label="Krispies" wsName="Krispies" />
+        <WorkspaceItem icon="🤖" label="Solvv AI" wsName="Solvv AI" />
+        <WorkspaceItem icon="🎬" label="Content" wsName="Krispies Content" />
+        <WorkspaceItem icon="📺" label="Surabhi's Channel" wsName="Surabhi's Channel" />
 
         {/* TEAM section */}
         <SectionLabel>TEAM</SectionLabel>

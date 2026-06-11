@@ -188,6 +188,8 @@ function MeetingFormModal({ isOpen, onClose, meeting, workspaces, users, onSave 
     title: '', workspace_id: '', start_date: '', start_time: '10:00',
     duration_mins: 60, meeting_url: '', agenda: '', attendee_ids: []
   });
+  const [externalAttendees, setExternalAttendees] = useState([]);
+  const [externalInput, setExternalInput] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -203,6 +205,13 @@ function MeetingFormModal({ isOpen, onClose, meeting, workspaces, users, onSave 
         agenda: meeting.agenda || '',
         attendee_ids: (meeting.attendees || []).map(a => a.id)
       });
+      // Parse saved external attendees if any
+      try {
+        const ext = meeting.external_attendees ? JSON.parse(meeting.external_attendees) : [];
+        setExternalAttendees(Array.isArray(ext) ? ext : []);
+      } catch {
+        setExternalAttendees([]);
+      }
     } else {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -210,7 +219,9 @@ function MeetingFormModal({ isOpen, onClose, meeting, workspaces, users, onSave 
         title: '', workspace_id: '', start_date: tomorrow.toISOString().split('T')[0],
         start_time: '10:00', duration_mins: 60, meeting_url: '', agenda: '', attendee_ids: []
       });
+      setExternalAttendees([]);
     }
+    setExternalInput('');
   }, [meeting, isOpen]);
 
   async function handleSubmit(e) {
@@ -225,7 +236,8 @@ function MeetingFormModal({ isOpen, onClose, meeting, workspaces, users, onSave 
         duration_mins: parseInt(form.duration_mins),
         meeting_url: form.meeting_url || null,
         agenda: form.agenda || null,
-        attendee_ids: form.attendee_ids
+        attendee_ids: form.attendee_ids,
+        external_attendees: JSON.stringify(externalAttendees)
       };
       await onSave(data);
       onClose();
@@ -241,6 +253,18 @@ function MeetingFormModal({ isOpen, onClose, meeting, workspaces, users, onSave 
         ? f.attendee_ids.filter(id => id !== userId)
         : [...f.attendee_ids, userId]
     }));
+  }
+
+  function addExternal() {
+    const name = externalInput.trim();
+    if (name && !externalAttendees.includes(name)) {
+      setExternalAttendees(prev => [...prev, name]);
+    }
+    setExternalInput('');
+  }
+
+  function removeExternal(name) {
+    setExternalAttendees(prev => prev.filter(n => n !== name));
   }
 
   return (
@@ -306,6 +330,56 @@ function MeetingFormModal({ isOpen, onClose, meeting, workspaces, users, onSave 
                 {u.name}
               </button>
             ))}
+          </div>
+
+          {/* External attendees */}
+          <div style={{ marginTop: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <input
+                type="text"
+                className="input-field"
+                value={externalInput}
+                onChange={e => setExternalInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addExternal(); } }}
+                placeholder="Add external attendee (name)"
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={addExternal}
+                style={{
+                  padding: '0 14px', borderRadius: '8px', border: '1.5px solid #e8e8ed',
+                  background: 'white', cursor: 'pointer', fontSize: '18px', color: '#6c63ff',
+                  fontWeight: '700', flexShrink: 0, fontFamily: 'inherit', lineHeight: 1
+                }}
+              >
+                +
+              </button>
+            </div>
+            {externalAttendees.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {externalAttendees.map(name => (
+                  <span key={name} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                    padding: '4px 10px', borderRadius: '8px',
+                    background: '#f3f4f6', color: '#374151', fontSize: '13px', fontWeight: '500'
+                  }}>
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => removeExternal(name)}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: '#9ca3af', padding: '0', lineHeight: 1, fontSize: '14px',
+                        fontFamily: 'inherit'
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

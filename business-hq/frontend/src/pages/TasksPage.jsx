@@ -339,12 +339,20 @@ export default function TasksPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'assignee'
 
   // Auto-open modal if ?new=1 in URL (from TopBar "+ New Task" button)
+  // Also read ?workspace= param from sidebar workspace nav
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('new') === '1') {
       setModalOpen(true);
+      window.history.replaceState({}, '', '/tasks');
+    }
+    const ws = params.get('workspace');
+    if (ws) {
+      // We'll match workspace name after workspaces load; store name temporarily
+      setFilterWorkspace('__ws__' + ws);
       window.history.replaceState({}, '', '/tasks');
     }
   }, []);
@@ -359,6 +367,15 @@ export default function TasksPage() {
       setTasks(t);
       setWorkspaces(w);
       setUsers(u);
+      // Resolve workspace name filter once workspaces are loaded
+      setFilterWorkspace(prev => {
+        if (prev && prev.startsWith('__ws__')) {
+          const wsName = prev.slice(6);
+          const matched = w.find(ws => ws.name === wsName);
+          return matched ? String(matched.id) : '';
+        }
+        return prev;
+      });
     } catch (err) {
       addToast('Failed to load tasks', 'error');
     } finally {
@@ -424,6 +441,19 @@ export default function TasksPage() {
     </div>
   );
 
+  // Build assignee groups for "By Assignee" view
+  const assigneeGroups = (() => {
+    const groups = {};
+    filteredTasks.forEach(task => {
+      const key = task.assignee_name || 'Unassigned';
+      if (!groups[key]) {
+        groups[key] = { name: key, color: task.assignee_color || '#9ca3af', tasks: [] };
+      }
+      groups[key].tasks.push(task);
+    });
+    return Object.values(groups).sort((a, b) => a.name.localeCompare(b.name));
+  })();
+
   return (
     <div className="fade-in">
       {/* Header */}
@@ -443,6 +473,26 @@ export default function TasksPage() {
           <div style={{ fontSize: '13px', color: '#9ca3af' }}>
             {filteredTasks.length} tasks
           </div>
+
+          {/* View toggle */}
+          <div style={{ display: 'flex', gap: '4px', background: '#f5f5f7', borderRadius: '9px', padding: '3px' }}>
+            {[{ key: 'kanban', label: 'Kanban View' }, { key: 'assignee', label: 'By Assignee' }].map(v => (
+              <button
+                key={v.key}
+                onClick={() => setViewMode(v.key)}
+                style={{
+                  padding: '5px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: '500',
+                  background: viewMode === v.key ? 'white' : 'transparent',
+                  color: viewMode === v.key ? '#1a1a2e' : '#9ca3af',
+                  boxShadow: viewMode === v.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s', fontFamily: 'inherit'
+                }}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <button
@@ -461,8 +511,48 @@ export default function TasksPage() {
         </button>
       </div>
 
+      {/* By Assignee view */}
+      {viewMode === 'assignee' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {assigneeGroups.length === 0 ? (
+            <div style={{ background: 'white', borderRadius: '14px', border: '1.5px dashed #e8e8ed', padding: '40px', textAlign: 'center', color: '#d1d5db', fontSize: '14px' }}>
+              No tasks
+            </div>
+          ) : assigneeGroups.map(group => (
+            <div key={group.name} style={{ background: 'white', borderRadius: '16px', border: '1px solid #f0f0f5', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+              {/* Group header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', borderBottom: '1px solid #f5f5f7', background: '#fafafa' }}>
+                <div style={{
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  background: group.color, color: 'white', fontSize: '13px', fontWeight: '700',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  {group.name === 'Unassigned' ? '?' : group.name[0]}
+                </div>
+                <span style={{ fontWeight: '700', fontSize: '14px', color: '#1a1a2e', flex: 1 }}>{group.name}</span>
+                <span style={{ background: '#f3f4f6', color: '#6b7280', borderRadius: '8px', padding: '2px 10px', fontSize: '12px', fontWeight: '700' }}>
+                  {group.tasks.length} task{group.tasks.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              {/* Tasks */}
+              <div style={{ padding: '12px 16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px' }}>
+                {group.tasks.map(task => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onEdit={t => { setEditTask(t); setModalOpen(true); }}
+                    onDelete={id => setDeleteConfirm(id)}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Kanban board */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+      {viewMode === 'kanban' && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
         {columns.map(col => (
           <div key={col.key}>
             {/* Column header */}
@@ -503,7 +593,7 @@ export default function TasksPage() {
             </div>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Task form modal */}
       <TaskFormModal

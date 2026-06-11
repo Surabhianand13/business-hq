@@ -103,8 +103,14 @@ async function initDB() {
         duration_mins INTEGER DEFAULT 60,
         meeting_url TEXT,
         agenda TEXT,
+        external_attendees TEXT DEFAULT '',
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
+    `);
+
+    // Migration: add external_attendees column if it doesn't exist yet
+    await pool.query(`
+      ALTER TABLE meetings ADD COLUMN IF NOT EXISTS external_attendees TEXT DEFAULT ''
     `);
 
     await pool.query(`
