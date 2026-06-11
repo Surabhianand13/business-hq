@@ -57,6 +57,12 @@ export const api = {
 
   // Dashboard
   getDashboard: () => request('GET', '/api/dashboard'),
+
+  // Deals
+  getDeals: () => request('GET', '/api/deals'),
+  createDeal: (data) => request('POST', '/api/deals', data),
+  updateDeal: (id, data) => request('PUT', `/api/deals/${id}`, data),
+  deleteDeal: (id) => request('DELETE', `/api/deals/${id}`),
 };
 
 export default api;

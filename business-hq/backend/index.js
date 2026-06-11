@@ -18,6 +18,8 @@ const taskRoutes = require('./routes/tasks');
 const meetingRoutes = require('./routes/meetings');
 const updateRoutes = require('./routes/updates');
 const dashboardRoutes = require('./routes/dashboard');
+const dealsRouter = require('./routes/deals');
+const auth = require('./middleware/auth');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -25,6 +27,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/updates', updateRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/deals', auth, dealsRouter);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
@@ -146,6 +149,25 @@ async function initDB() {
         user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         content TEXT NOT NULL,
         created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS deals (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        company TEXT NOT NULL,
+        contact_name TEXT,
+        contact_email TEXT,
+        contact_phone TEXT,
+        value REAL DEFAULT 0,
+        stage TEXT DEFAULT 'lead',
+        probability INTEGER DEFAULT 10,
+        assignee_id INTEGER REFERENCES users(id),
+        notes TEXT,
+        expected_close_date DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -447,6 +469,35 @@ async function seedData() {
     await pool.query('INSERT INTO update_likes (update_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [updateIds[1], userIds['Surabhi']]);
     await pool.query('INSERT INTO update_likes (update_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [updateIds[1], userIds['Sneha']]);
     await pool.query('INSERT INTO update_likes (update_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [updateIds[2], userIds['Surabhi']]);
+  }
+
+  // Seed Deals
+  const { rows: dealRows } = await pool.query("SELECT COUNT(*) as cnt FROM deals");
+  if (parseInt(dealRows[0].cnt) === 0) {
+    const { rows: dealUsers } = await pool.query("SELECT id, name FROM users WHERE name IN ('Ritesh', 'Sneha')");
+    const ritesh = dealUsers.find(u => u.name === 'Ritesh');
+    const sneha = dealUsers.find(u => u.name === 'Sneha');
+
+    const seedDeals = [
+      ['TechCorp Solutions', 'AI Automation Suite', 'lead', 85000, 10, 'John Smith', 'john@techcorp.com', '+91 98765 43210', ritesh?.id, 'Initial contact made via LinkedIn', '2026-07-15'],
+      ['GreenLeaf Retail', 'E-commerce AI Assistant', 'qualified', 45000, 30, 'Priya Patel', 'priya@greenleaf.com', '+91 87654 32109', sneha?.id, 'Demo scheduled for next week', '2026-06-30'],
+      ['FinanceFirst Bank', 'Customer Service Bot', 'proposal', 120000, 60, 'Rajesh Kumar', 'rajesh@financefirst.com', '+91 76543 21098', ritesh?.id, 'Proposal sent, awaiting board approval', '2026-06-20'],
+      ['MediCare Health', 'Patient Engagement AI', 'negotiation', 95000, 80, 'Dr. Anita Shah', 'anita@medicare.com', '+91 65432 10987', sneha?.id, 'Finalizing contract terms', '2026-06-15'],
+      ['EduTech Global', 'Learning Assistant Bot', 'won', 65000, 100, 'Michael Chen', 'michael@edutech.com', '+91 54321 09876', ritesh?.id, 'Contract signed! Onboarding next Monday', '2026-06-10'],
+      ['RetailMax Chain', 'Inventory AI System', 'won', 78000, 100, 'Sunita Verma', 'sunita@retailmax.com', '+91 43210 98765', sneha?.id, 'Deployment in progress', '2026-06-05'],
+      ['LogiTrans Co', 'Route Optimization AI', 'lost', 55000, 0, 'Amit Joshi', 'amit@logitrans.com', '+91 32109 87654', ritesh?.id, 'Went with competitor pricing', '2026-05-30'],
+      ['StartupHub Inc', 'CRM Automation', 'lead', 32000, 10, 'Ravi Sharma', 'ravi@startuphub.com', '+91 21098 76543', sneha?.id, 'Referred by existing client', '2026-07-30'],
+      ['CloudServe Ltd', 'IT Helpdesk AI', 'qualified', 88000, 40, 'Nina Reddy', 'nina@cloudserve.com', '+91 10987 65432', ritesh?.id, 'Technical evaluation underway', '2026-07-10'],
+      ['FoodChain Pro', 'Supply Chain AI', 'proposal', 110000, 55, 'Kiran Nair', 'kiran@foodchain.com', '+91 09876 54321', sneha?.id, 'Customized proposal being prepared', '2026-06-25'],
+    ];
+
+    for (const [company, title, stage, value, probability, contact_name, contact_email, contact_phone, assignee_id, notes, expected_close_date] of seedDeals) {
+      await pool.query(
+        'INSERT INTO deals (company, title, stage, value, probability, contact_name, contact_email, contact_phone, assignee_id, notes, expected_close_date) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
+        [company, title, stage, value, probability, contact_name, contact_email, contact_phone, assignee_id, notes, expected_close_date]
+      );
+    }
+    console.log('Seeded 10 deals');
   }
 
   console.log('Seed data inserted successfully!');

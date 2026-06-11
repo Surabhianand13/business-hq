@@ -11,6 +11,7 @@ import UpdatesPage from './pages/UpdatesPage';
 import TeamPage from './pages/TeamPage';
 import SettingsPage from './pages/SettingsPage';
 import ReportsPage from './pages/ReportsPage';
+import SalesPipelinePage from './pages/SalesPipelinePage';
 
 export const AppContext = createContext(null);
 
@@ -77,6 +78,7 @@ export default function App() {
           <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+          <Route path="/pipeline" element={<ProtectedRoute><SalesPipelinePage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50">

@@ -165,6 +165,7 @@ export default function Sidebar() {
         <SectionLabel>WORKSPACES</SectionLabel>
         <WorkspaceItem icon="🥐" label="Krispies" wsName="Krispies" />
         <WorkspaceItem icon="🤖" label="Solvv AI" wsName="Solvv AI" />
+        <NavItem to="/pipeline" icon="💰" label="Sales Pipeline" />
         <WorkspaceItem icon="🎬" label="Content" wsName="Krispies Content" />
         <WorkspaceItem icon="📺" label="Surabhi's Channel" wsName="Surabhi's Channel" />
 
