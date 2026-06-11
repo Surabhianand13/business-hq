@@ -3,11 +3,14 @@ import { useApp } from '../App';
 import { useState, useEffect } from 'react';
 import api from '../api';
 
-function WorkspaceItem({ icon, label, wsName }) {
+function WorkspaceItem({ icon, label, wsName, onNavClick }) {
   const navigate = useNavigate();
   return (
     <button
-      onClick={() => navigate(`/tasks?workspace=${encodeURIComponent(wsName)}`)}
+      onClick={() => {
+        navigate(`/tasks?workspace=${encodeURIComponent(wsName)}`);
+        onNavClick?.();
+      }}
       style={{
         display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 10px',
         borderRadius: '10px', textDecoration: 'none', marginBottom: '2px', fontWeight: '500',
@@ -39,11 +42,12 @@ function SectionLabel({ children }) {
   );
 }
 
-function NavItem({ to, icon, label, badge, badgeColor, end }) {
+function NavItem({ to, icon, label, badge, badgeColor, end, onNavClick }) {
   return (
     <NavLink
       to={to}
       end={end}
+      onClick={onNavClick}
       style={({ isActive }) => ({
         display: 'flex', alignItems: 'center', gap: '10px',
         padding: '9px 10px', borderRadius: '10px',
@@ -96,7 +100,7 @@ function Avatar({ user, size = 32 }) {
 export { Avatar };
 
 export default function Sidebar() {
-  const { user, logout } = useApp();
+  const { user, logout, sidebarOpen, setSidebarOpen } = useApp();
   const navigate = useNavigate();
   const [counts, setCounts] = useState({ tasks: 0, meetings: 0, updates: 0 });
 
@@ -122,16 +126,40 @@ export default function Sidebar() {
     navigate('/login');
   }
 
+  function handleNavClick() {
+    setSidebarOpen(false);
+  }
+
   return (
-    <div style={{
-      width: '230px', flexShrink: 0,
-      background: '#ffffff',
-      borderRight: '1px solid #e8e8ed',
-      display: 'flex', flexDirection: 'column',
-      padding: '20px 12px',
-      height: '100vh',
-      overflowY: 'auto'
-    }}>
+    <div
+      className={`sidebar-wrapper ${sidebarOpen ? 'open' : ''}`}
+      style={{
+        width: '230px', flexShrink: 0,
+        background: '#ffffff',
+        borderRight: '1px solid #e8e8ed',
+        display: 'flex', flexDirection: 'column',
+        padding: '20px 12px',
+        height: '100vh',
+        overflowY: 'auto',
+        position: 'relative'
+      }}
+    >
+      {/* Mobile close button */}
+      <button
+        className="show-mobile"
+        onClick={() => setSidebarOpen(false)}
+        style={{
+          display: 'none', // overridden by .show-mobile on mobile
+          position: 'absolute', top: '16px', right: '12px',
+          background: '#f5f5f7', border: 'none', cursor: 'pointer',
+          width: '28px', height: '28px', borderRadius: '8px',
+          alignItems: 'center', justifyContent: 'center',
+          fontSize: '18px', color: '#6b7280', zIndex: 51
+        }}
+      >
+        ×
+      </button>
+
       {/* Logo */}
       <div style={{ padding: '0 8px 20px', borderBottom: '1px solid #f0f0f5', marginBottom: '4px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -155,24 +183,24 @@ export default function Sidebar() {
       <nav style={{ flex: 1 }}>
         {/* MAIN section */}
         <SectionLabel>MAIN</SectionLabel>
-        <NavItem to="/" icon="🏠" label="Dashboard" end={true} />
-        <NavItem to="/tasks" icon="✅" label="My Tasks" badge={counts.tasks || undefined} badgeColor="#6c63ff" />
-        <NavItem to="/meetings" icon="📅" label="Meetings" badge={counts.meetings || undefined} badgeColor="#f97316" />
-        <NavItem to="/updates" icon="📢" label="Updates" badge={counts.updates || undefined} badgeColor="#ef4444" />
-        <NavItem to="/reports" icon="📊" label="Reports" />
+        <NavItem to="/" icon="🏠" label="Dashboard" end={true} onNavClick={handleNavClick} />
+        <NavItem to="/tasks" icon="✅" label="My Tasks" badge={counts.tasks || undefined} badgeColor="#6c63ff" onNavClick={handleNavClick} />
+        <NavItem to="/meetings" icon="📅" label="Meetings" badge={counts.meetings || undefined} badgeColor="#f97316" onNavClick={handleNavClick} />
+        <NavItem to="/updates" icon="📢" label="Updates" badge={counts.updates || undefined} badgeColor="#ef4444" onNavClick={handleNavClick} />
+        <NavItem to="/reports" icon="📊" label="Reports" onNavClick={handleNavClick} />
 
         {/* WORKSPACES section */}
         <SectionLabel>WORKSPACES</SectionLabel>
-        <WorkspaceItem icon="🥐" label="Krispies" wsName="Krispies" />
-        <WorkspaceItem icon="🤖" label="Solvv AI" wsName="Solvv AI" />
-        <NavItem to="/pipeline" icon="💰" label="Sales Pipeline" />
-        <WorkspaceItem icon="🎬" label="Content" wsName="Krispies Content" />
-        <WorkspaceItem icon="📺" label="Surabhi's Channel" wsName="Surabhi's Channel" />
+        <WorkspaceItem icon="🥐" label="Krispies" wsName="Krispies" onNavClick={handleNavClick} />
+        <WorkspaceItem icon="🤖" label="Solvv AI" wsName="Solvv AI" onNavClick={handleNavClick} />
+        <NavItem to="/pipeline" icon="💰" label="Sales Pipeline" onNavClick={handleNavClick} />
+        <WorkspaceItem icon="🎬" label="Content" wsName="Krispies Content" onNavClick={handleNavClick} />
+        <WorkspaceItem icon="📺" label="Surabhi's Channel" wsName="Surabhi's Channel" onNavClick={handleNavClick} />
 
         {/* TEAM section */}
         <SectionLabel>TEAM</SectionLabel>
-        <NavItem to="/team" icon="👥" label="Members" />
-        <NavItem to="/settings" icon="⚙️" label="Settings" />
+        <NavItem to="/team" icon="👥" label="Members" onNavClick={handleNavClick} />
+        <NavItem to="/settings" icon="⚙️" label="Settings" onNavClick={handleNavClick} />
       </nav>
 
       {/* Styled user profile card */}

@@ -176,7 +176,7 @@ function SearchModal({ onClose, navigate }) {
 export default function TopBar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useApp();
+  const { user, setSidebarOpen } = useApp();
   const [searchOpen, setSearchOpen] = useState(false);
 
   const info = pageInfo[location.pathname] || { title: 'Business HQ', subtitle: '' };
@@ -196,23 +196,44 @@ export default function TopBar() {
 
   return (
     <>
-      <div style={{
-        background: '#ffffff',
-        borderBottom: '1px solid #e8e8ed',
-        padding: '16px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0
-      }}>
+      <div
+        className="topbar-wrapper"
+        style={{
+          background: '#ffffff',
+          borderBottom: '1px solid #e8e8ed',
+          padding: '16px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          flexShrink: 0
+        }}
+      >
+        {/* Hamburger button — visible only on mobile via .show-mobile */}
+        <button
+          className="show-mobile"
+          onClick={() => setSidebarOpen(true)}
+          style={{
+            display: 'none', // overridden by .show-mobile on mobile
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: '6px', borderRadius: '8px',
+            flexDirection: 'column', gap: '4px', alignItems: 'center',
+            flexShrink: 0
+          }}
+          aria-label="Open menu"
+        >
+          <span style={{ display: 'block', width: '20px', height: '2px', background: '#374151', borderRadius: '2px' }} />
+          <span style={{ display: 'block', width: '20px', height: '2px', background: '#374151', borderRadius: '2px' }} />
+          <span style={{ display: 'block', width: '20px', height: '2px', background: '#374151', borderRadius: '2px' }} />
+        </button>
+
         {/* Left: greeting + subtitle */}
-        <div>
-          <h1 style={{ fontSize: '20px', fontWeight: '700', color: '#1a1a2e', margin: 0 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{ fontSize: '20px', fontWeight: '700', color: '#1a1a2e', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {isDashboard
               ? `${greeting}, ${firstName} ${greetingEmoji}`
               : info.title}
           </h1>
-          <p style={{ fontSize: '13px', color: '#9ca3af', margin: '2px 0 0' }}>
+          <p style={{ fontSize: '13px', color: '#9ca3af', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {isDashboard
               ? `${dateStr} · You have 3 critical tasks and 2 meetings today`
               : info.subtitle}
@@ -220,9 +241,9 @@ export default function TopBar() {
         </div>
 
         {/* Right: avatars + notification + search + new task */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Team avatar stack */}
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          {/* Team avatar stack — hidden on mobile */}
+          <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center' }}>
             {teamAvatars.map((av, i) => (
               <div
                 key={i}
@@ -281,8 +302,9 @@ export default function TopBar() {
             }} />
           </button>
 
-          {/* Search button */}
+          {/* Search button — hidden on mobile */}
           <button
+            className="hide-mobile"
             onClick={() => setSearchOpen(true)}
             style={{
               background: 'white',

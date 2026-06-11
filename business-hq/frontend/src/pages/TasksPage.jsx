@@ -223,7 +223,7 @@ function TaskFormModal({ isOpen, onClose, task, workspaces, users, onSave }) {
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
               Workspace *
@@ -257,7 +257,7 @@ function TaskFormModal({ isOpen, onClose, task, workspaces, users, onSave }) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+        <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
               Status
@@ -457,7 +457,7 @@ export default function TasksPage() {
   return (
     <div className="fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+      <div className="tasks-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <select
             className="input-field"
@@ -552,7 +552,7 @@ export default function TasksPage() {
       )}
 
       {/* Kanban board */}
-      {viewMode === 'kanban' && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+      {viewMode === 'kanban' && <div className="kanban-scroll grid-3" style={{ gap: '20px' }}>
         {columns.map(col => (
           <div key={col.key}>
             {/* Column header */}

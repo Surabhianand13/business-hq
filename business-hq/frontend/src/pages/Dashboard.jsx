@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
+import { useResponsive } from '../hooks/useResponsive';
 import api from '../api';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -112,6 +113,7 @@ function FocusMode({ tasks, meetings, onClose }) {
 export default function Dashboard() {
   const { user, addToast } = useApp();
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const [data, setData] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [deals, setDeals] = useState([]);
@@ -205,7 +207,7 @@ export default function Dashboard() {
       {focusMode && <FocusMode tasks={tasks} meetings={data?.today_meetings} onClose={() => setFocusMode(false)} />}
 
       {/* ── HERO ROW ─────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '18px', marginBottom: '20px' }}>
+      <div className="grid-hero" style={{ marginBottom: '20px' }}>
 
         {/* Welcome + briefing */}
         <div style={{
@@ -227,8 +229,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '28px', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: '28px' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '16px' : '28px', alignItems: isMobile ? 'flex-start' : 'flex-end', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: isMobile ? '16px' : '28px', flexWrap: 'wrap' }}>
               {[
                 { label: 'Due Today', value: stats.tasks_due_today || 0, warn: (stats.tasks_due_today || 0) > 0 },
                 { label: 'Meetings', value: stats.meetings_today || 0 },
@@ -340,7 +342,7 @@ export default function Dashboard() {
       )}
 
       {/* ── WORKSPACE HEALTH ROW ──────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
+      <div className="grid-ws-health" style={{ marginBottom: '20px' }}>
         {wsTasks.map((ws, i) => (
           <div key={i} style={{ background: 'white', borderRadius: '16px', border: '1px solid #f0f0f5', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -387,7 +389,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── MAIN CONTENT GRID ────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '18px', marginBottom: '18px' }}>
+      <div className="grid-2-sidebar" style={{ marginBottom: '18px' }}>
 
         {/* Left: Task Board */}
         <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f0f0f5', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', padding: '20px' }}>
@@ -400,7 +402,7 @@ export default function Dashboard() {
               View all →
             </button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+          <div className="grid-3" style={{ gap: '12px' }}>
             {[
               { title: 'To Do', items: todo, color: '#6b7280', bg: '#f3f4f6' },
               { title: 'In Progress', items: inprog, color: '#3b82f6', bg: '#eff6ff' },
@@ -507,7 +509,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── BOTTOM ROW ───────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '18px' }}>
+      <div className="grid-bottom">
 
         {/* Team Activity */}
         <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f0f0f5', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', padding: '18px' }}>

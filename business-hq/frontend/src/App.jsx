@@ -20,12 +20,20 @@ export function useApp() {
 }
 
 function AppLayout({ children }) {
+  const { sidebarOpen, setSidebarOpen } = useApp();
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f5f5f7]">
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f5f5f7' }}>
+      {/* Overlay for mobile */}
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+      {/* Sidebar */}
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main content */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         <TopBar />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="page-main" style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           {children}
         </main>
       </div>
@@ -47,6 +55,7 @@ export default function App() {
     } catch { return null; }
   });
   const [toasts, setToasts] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   function login(userData, token) {
     localStorage.setItem('hq_token', token);
@@ -67,7 +76,7 @@ export default function App() {
   }
 
   return (
-    <AppContext.Provider value={{ user, login, logout, addToast }}>
+    <AppContext.Provider value={{ user, login, logout, addToast, sidebarOpen, setSidebarOpen }}>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />

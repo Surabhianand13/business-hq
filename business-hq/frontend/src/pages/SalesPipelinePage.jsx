@@ -433,7 +433,7 @@ function DealModal({ deal, users, onClose, onSave }) {
 
         <form onSubmit={handleSubmit}>
           {/* Deal title + Company */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+          <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
             <div>
               <label style={labelStyle}>Deal Title *</label>
               <input
@@ -457,7 +457,7 @@ function DealModal({ deal, users, onClose, onSave }) {
           </div>
 
           {/* Value + Stage */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+          <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
             <div>
               <label style={labelStyle}>Deal Value ₹</label>
               <input
@@ -484,7 +484,7 @@ function DealModal({ deal, users, onClose, onSave }) {
           </div>
 
           {/* Probability + Expected close */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+          <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
             <div>
               <label style={labelStyle}>Probability %</label>
               <input
@@ -531,7 +531,7 @@ function DealModal({ deal, users, onClose, onSave }) {
               placeholder="e.g. John Smith"
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+          <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
             <div>
               <label style={labelStyle}>Contact Email</label>
               <input
@@ -593,7 +593,7 @@ function DealModal({ deal, users, onClose, onSave }) {
                 </div>
               </div>
               {/* Meeting date */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <div>
                   <label style={labelStyle}>Meeting Date & Time *</label>
                   <input
