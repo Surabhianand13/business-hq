@@ -185,6 +185,16 @@ async function initDB() {
     // Migrate removed 'qualified' stage to 'meeting_scheduled'
     await pool.query(`UPDATE deals SET stage='meeting_scheduled' WHERE stage='qualified'`).catch(() => {});
 
+    // Migrate existing user emails @businesshq.com -> @solvvai.com and reset passwords
+    try {
+      const { rows: oldUsers } = await pool.query(`SELECT id FROM users WHERE email LIKE '%@businesshq.com'`);
+      if (oldUsers.length > 0) {
+        const newPass = await bcrypt.hash('solvvai123', 10);
+        await pool.query(`UPDATE users SET email = REPLACE(email, '@businesshq.com', '@solvvai.com'), password_hash = $1 WHERE email LIKE '%@businesshq.com'`, [newPass]);
+        console.log(`Migrated ${oldUsers.length} users to @solvvai.com`);
+      }
+    } catch (e) { console.error('Email migration error:', e.message); }
+
     console.log('Tables created/verified');
 
     // Seed data
@@ -205,15 +215,15 @@ async function seedData() {
 
   console.log('Seeding database...');
 
-  const password = await bcrypt.hash('businesshq123', 10);
+  const password = await bcrypt.hash('solvvai123', 10);
 
   // Users
   const usersData = [
-    { name: 'Surabhi', email: 'surabhi@businesshq.com', role: 'admin', avatar_color: '#6c63ff' },
-    { name: 'Shilpa', email: 'shilpa@businesshq.com', role: 'member', avatar_color: '#f59e0b' },
-    { name: 'Tejas', email: 'tejas@businesshq.com', role: 'member', avatar_color: '#10b981' },
-    { name: 'Ritesh', email: 'ritesh@businesshq.com', role: 'member', avatar_color: '#3b82f6' },
-    { name: 'Sneha', email: 'sneha@businesshq.com', role: 'member', avatar_color: '#ec4899' }
+    { name: 'Surabhi', email: 'surabhi@solvvai.com', role: 'admin', avatar_color: '#6c63ff' },
+    { name: 'Shilpa', email: 'shilpa@solvvai.com', role: 'member', avatar_color: '#f59e0b' },
+    { name: 'Tejas', email: 'tejas@solvvai.com', role: 'member', avatar_color: '#10b981' },
+    { name: 'Ritesh', email: 'ritesh@solvvai.com', role: 'member', avatar_color: '#3b82f6' },
+    { name: 'Sneha', email: 'sneha@solvvai.com', role: 'member', avatar_color: '#ec4899' }
   ];
 
   const userIds = {};

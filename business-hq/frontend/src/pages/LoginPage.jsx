@@ -10,11 +10,11 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   const teamMembers = [
-    { name: 'Surabhi', email: 'surabhi@businesshq.com', role: 'Admin', color: '#6c63ff' },
-    { name: 'Shilpa', email: 'shilpa@businesshq.com', role: 'Krispies', color: '#f97316' },
-    { name: 'Tejas', email: 'tejas@businesshq.com', role: 'Content', color: '#10b981' },
-    { name: 'Ritesh', email: 'ritesh@businesshq.com', role: 'Solvv AI', color: '#3b82f6' },
-    { name: 'Sneha', email: 'sneha@businesshq.com', role: 'Solvv AI', color: '#ec4899' },
+    { name: 'Surabhi', email: 'surabhi@solvvai.com', role: 'Admin', color: '#6c63ff' },
+    { name: 'Shilpa', email: 'shilpa@solvvai.com', role: 'Krispies', color: '#f97316' },
+    { name: 'Tejas', email: 'tejas@solvvai.com', role: 'Content', color: '#10b981' },
+    { name: 'Ritesh', email: 'ritesh@solvvai.com', role: 'Solvv AI', color: '#3b82f6' },
+    { name: 'Sneha', email: 'sneha@solvvai.com', role: 'Solvv AI', color: '#ec4899' },
   ];
 
   async function handleSubmit(e) {
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="you@businesshq.com"
+                placeholder="you@solvvai.com"
                 required
                 className="input-field"
                 style={{ fontSize: '14px' }}
@@ -127,13 +127,13 @@ export default function LoginPage() {
 
           <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #f0f0f5' }}>
             <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '12px', textAlign: 'center' }}>
-              Quick sign-in (password: businesshq123)
+              Quick sign-in (password: solvvai123)
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
               {teamMembers.map(member => (
                 <button
                   key={member.email}
-                  onClick={() => { setEmail(member.email); setPassword('businesshq123'); }}
+                  onClick={() => { setEmail(member.email); setPassword('solvvai123'); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '6px 10px', borderRadius: '8px',
