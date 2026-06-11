@@ -106,10 +106,36 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
                 background: task.assignee_color || '#6c63ff',
                 color: 'white', fontSize: '10px', fontWeight: '700',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
+              }} title={`${task.assignee_name} (Owner)`}>
                 {task.assignee_name[0]}
               </div>
               <span style={{ fontSize: '11px', color: '#6b7280' }}>{task.assignee_name}</span>
+            </div>
+          )}
+          {/* Collaborators stacked avatars */}
+          {(task.collaborators || []).length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', marginLeft: task.assignee_name ? '4px' : '0' }}>
+              {task.assignee_name && <span style={{ fontSize: '11px', color: '#d1d5db', marginRight: '4px' }}>+</span>}
+              <div style={{ display: 'flex' }}>
+                {(task.collaborators || []).slice(0, 3).map((c, i) => (
+                  <div key={c.id} title={`${c.name} (Collaborator)`} style={{
+                    width: '20px', height: '20px', borderRadius: '50%',
+                    background: c.avatar_color || '#9ca3af', color: 'white',
+                    fontSize: '9px', fontWeight: '700',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '1.5px solid white', marginLeft: i === 0 ? '0' : '-6px'
+                  }}>{c.name[0]}</div>
+                ))}
+                {(task.collaborators || []).length > 3 && (
+                  <div style={{
+                    width: '20px', height: '20px', borderRadius: '50%',
+                    background: '#f3f4f6', color: '#6b7280',
+                    fontSize: '9px', fontWeight: '700',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '1.5px solid white', marginLeft: '-6px'
+                  }}>+{task.collaborators.length - 3}</div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -158,6 +184,7 @@ function TaskFormModal({ isOpen, onClose, task, workspaces, users, onSave }) {
     title: '', description: '', status: 'todo', priority: 'medium',
     workspace_id: '', assignee_id: '', due_date: ''
   });
+  const [collaboratorIds, setCollaboratorIds] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -171,20 +198,31 @@ function TaskFormModal({ isOpen, onClose, task, workspaces, users, onSave }) {
         assignee_id: task.assignee_id || '',
         due_date: task.due_date ? task.due_date.split('T')[0] : ''
       });
+      setCollaboratorIds((task.collaborators || []).map(c => c.id));
     } else {
       setForm({ title: '', description: '', status: 'todo', priority: 'medium', workspace_id: '', assignee_id: '', due_date: '' });
+      setCollaboratorIds([]);
     }
   }, [task, isOpen]);
+
+  function toggleCollaborator(uid) {
+    setCollaboratorIds(prev =>
+      prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid]
+    );
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     try {
+      const ownerId = form.assignee_id ? parseInt(form.assignee_id) : null;
       const data = {
         ...form,
         workspace_id: parseInt(form.workspace_id),
-        assignee_id: form.assignee_id ? parseInt(form.assignee_id) : null,
-        due_date: form.due_date || null
+        assignee_id: ownerId,
+        due_date: form.due_date || null,
+        // Exclude the main owner from collaborators to avoid duplication
+        collaborator_ids: collaboratorIds.filter(id => id !== ownerId)
       };
       await onSave(data);
       onClose();
@@ -242,7 +280,7 @@ function TaskFormModal({ isOpen, onClose, task, workspaces, users, onSave }) {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-              Assignee
+              👤 Main Owner
             </label>
             <select
               className="input-field"
@@ -254,6 +292,48 @@ function TaskFormModal({ isOpen, onClose, task, workspaces, users, onSave }) {
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
+          </div>
+        </div>
+
+        {/* Co-owners / Collaborators multi-select */}
+        <div>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+            👥 Co-owners / Collaborators
+          </label>
+          <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '8px' }}>
+            Tap to add people who will work on this task with the owner
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {users
+              .filter(u => String(u.id) !== String(form.assignee_id))
+              .map(u => {
+                const selected = collaboratorIds.includes(u.id);
+                return (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => toggleCollaborator(u.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '6px 12px', borderRadius: '20px', cursor: 'pointer',
+                      fontFamily: 'inherit', fontSize: '13px', fontWeight: '600',
+                      border: selected ? `1.5px solid ${u.avatar_color || '#6c63ff'}` : '1.5px solid #e8e8ed',
+                      background: selected ? `${u.avatar_color || '#6c63ff'}15` : 'white',
+                      color: selected ? (u.avatar_color || '#6c63ff') : '#6b7280',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <span style={{
+                      width: '20px', height: '20px', borderRadius: '50%',
+                      background: u.avatar_color || '#6c63ff', color: 'white',
+                      fontSize: '10px', fontWeight: '700',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>{u.name[0]}</span>
+                    {u.name}
+                    {selected && <span style={{ fontSize: '12px' }}>✓</span>}
+                  </button>
+                );
+              })}
           </div>
         </div>
 

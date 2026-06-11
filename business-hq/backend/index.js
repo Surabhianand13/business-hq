@@ -87,6 +87,14 @@ async function initDB() {
     `);
 
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS task_collaborators (
+        task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        PRIMARY KEY (task_id, user_id)
+      )
+    `);
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS task_comments (
         id SERIAL PRIMARY KEY,
         task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
