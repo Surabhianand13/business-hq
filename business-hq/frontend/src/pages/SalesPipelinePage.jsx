@@ -3,16 +3,17 @@ import { useApp } from '../App';
 import api from '../api';
 
 const STAGES = [
-  { key: 'lead',        label: 'Lead',          color: '#6b7280', bg: '#f3f4f6', emoji: '🔵' },
-  { key: 'qualified',   label: 'Qualified',     color: '#3b82f6', bg: '#eff6ff', emoji: '⭐' },
-  { key: 'proposal',    label: 'Proposal Sent', color: '#8b5cf6', bg: '#f5f3ff', emoji: '📝' },
-  { key: 'negotiation', label: 'Negotiation',   color: '#f59e0b', bg: '#fffbeb', emoji: '🤝' },
-  { key: 'won',         label: 'Closed Won',    color: '#10b981', bg: '#f0fdf4', emoji: '✅' },
-  { key: 'lost',        label: 'Closed Lost',   color: '#ef4444', bg: '#fef2f2', emoji: '❌' },
+  { key: 'lead',              label: 'Lead',               color: '#6b7280', bg: '#f3f4f6', emoji: '🔵' },
+  { key: 'qualified',         label: 'Qualified',          color: '#3b82f6', bg: '#eff6ff', emoji: '⭐' },
+  { key: 'meeting_scheduled', label: 'Meeting Scheduled',  color: '#06b6d4', bg: '#ecfeff', emoji: '📞' },
+  { key: 'proposal',          label: 'Proposal Sent',      color: '#8b5cf6', bg: '#f5f3ff', emoji: '📝' },
+  { key: 'negotiation',       label: 'Negotiation',        color: '#f59e0b', bg: '#fffbeb', emoji: '🤝' },
+  { key: 'won',               label: 'Closed Won',         color: '#10b981', bg: '#f0fdf4', emoji: '✅' },
+  { key: 'lost',              label: 'Closed Lost',        color: '#ef4444', bg: '#fef2f2', emoji: '❌' },
 ];
 
 const STAGE_PROBABILITY = {
-  lead: 10, qualified: 30, proposal: 60, negotiation: 80, won: 100, lost: 0
+  lead: 10, qualified: 30, meeting_scheduled: 50, proposal: 60, negotiation: 80, won: 100, lost: 0
 };
 
 function formatCurrency(val) {
@@ -211,6 +212,28 @@ function DealCard({ deal, onEdit, onDelete, onMove }) {
         </div>
       )}
 
+      {/* Meeting info for meeting_scheduled stage */}
+      {deal.stage === 'meeting_scheduled' && deal.meeting_date && (
+        <div style={{ margin: '8px 0', padding: '8px 10px', borderRadius: '8px', background: '#ecfeff', border: '1px solid #06b6d420' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+            <span style={{ fontSize: '12px' }}>{deal.meeting_type === 'online' ? '💻' : '🤝'}</span>
+            <span style={{ fontSize: '11px', fontWeight: '700', color: '#06b6d4' }}>
+              {deal.meeting_type === 'online' ? 'Online Meeting' : deal.meeting_type === 'offline' ? 'In-Person Meeting' : 'Meeting'}
+            </span>
+          </div>
+          <div style={{ fontSize: '11px', color: '#0e7490' }}>
+            📅 {new Date(deal.meeting_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            {' · '}
+            {new Date(deal.meeting_date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+          {deal.meeting_link && (
+            <a href={deal.meeting_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: '#06b6d4', textDecoration: 'none', fontWeight: '600' }}>
+              🔗 Join Meeting →
+            </a>
+          )}
+        </div>
+      )}
+
       {/* Expected close date */}
       {deal.expected_close_date && (
         <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -308,7 +331,8 @@ function KanbanColumn({ stage, deals, onEdit, onDelete, onMove }) {
 const EMPTY_FORM = {
   title: '', company: '', value: '', stage: 'lead', probability: 10,
   expected_close_date: '', assignee_id: '', contact_name: '',
-  contact_email: '', contact_phone: '', notes: ''
+  contact_email: '', contact_phone: '', notes: '',
+  meeting_type: 'online', meeting_date: '', meeting_link: '', meeting_notes: ''
 };
 
 function DealModal({ deal, users, onClose, onSave }) {
@@ -323,7 +347,11 @@ function DealModal({ deal, users, onClose, onSave }) {
     contact_name: deal.contact_name || '',
     contact_email: deal.contact_email || '',
     contact_phone: deal.contact_phone || '',
-    notes: deal.notes || ''
+    notes: deal.notes || '',
+    meeting_type: deal.meeting_type || 'online',
+    meeting_date: deal.meeting_date ? new Date(deal.meeting_date).toISOString().slice(0, 16) : '',
+    meeting_link: deal.meeting_link || '',
+    meeting_notes: deal.meeting_notes || ''
   } : { ...EMPTY_FORM });
 
   const [saving, setSaving] = useState(false);
@@ -347,7 +375,11 @@ function DealModal({ deal, users, onClose, onSave }) {
         value: parseFloat(form.value) || 0,
         probability: parseInt(form.probability) || 0,
         assignee_id: form.assignee_id || null,
-        expected_close_date: form.expected_close_date || null
+        expected_close_date: form.expected_close_date || null,
+        meeting_date: form.stage === 'meeting_scheduled' && form.meeting_date ? form.meeting_date : null,
+        meeting_type: form.stage === 'meeting_scheduled' ? (form.meeting_type || 'online') : '',
+        meeting_link: form.stage === 'meeting_scheduled' ? (form.meeting_link || '') : '',
+        meeting_notes: form.stage === 'meeting_scheduled' ? (form.meeting_notes || '') : ''
       });
       onClose();
     } catch (err) {
@@ -522,15 +554,92 @@ function DealModal({ deal, users, onClose, onSave }) {
           </div>
 
           {/* Notes */}
-          <div style={{ marginBottom: '22px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <label style={labelStyle}>Notes</label>
             <textarea
-              style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+              style={{ ...inputStyle, minHeight: '70px', resize: 'vertical' }}
               value={form.notes}
               onChange={e => handleChange('notes', e.target.value)}
               placeholder="Any additional context..."
             />
           </div>
+
+          {/* Meeting Scheduled fields — shown only when stage = meeting_scheduled */}
+          {form.stage === 'meeting_scheduled' && (
+            <div style={{ background: '#ecfeff', border: '1px solid #06b6d430', borderRadius: '12px', padding: '16px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#0e7490', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                📞 Meeting Details
+              </div>
+              {/* Meeting type */}
+              <div style={{ marginBottom: '12px' }}>
+                <label style={labelStyle}>Meeting Type</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {['online', 'offline'].map(type => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => handleChange('meeting_type', type)}
+                      style={{
+                        flex: 1, padding: '9px', borderRadius: '8px', border: `2px solid ${form.meeting_type === type ? '#06b6d4' : '#e5e7eb'}`,
+                        background: form.meeting_type === type ? '#ecfeff' : 'white',
+                        color: form.meeting_type === type ? '#0e7490' : '#6b7280',
+                        fontWeight: '600', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                      }}
+                    >
+                      {type === 'online' ? '💻 Online' : '🤝 In-Person'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Meeting date */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div>
+                  <label style={labelStyle}>Meeting Date & Time *</label>
+                  <input
+                    style={inputStyle}
+                    type="datetime-local"
+                    value={form.meeting_date}
+                    onChange={e => handleChange('meeting_date', e.target.value)}
+                    required={form.stage === 'meeting_scheduled'}
+                  />
+                </div>
+                {form.meeting_type === 'online' && (
+                  <div>
+                    <label style={labelStyle}>Meeting Link (Google Meet, Zoom etc.)</label>
+                    <input
+                      style={inputStyle}
+                      type="url"
+                      value={form.meeting_link}
+                      onChange={e => handleChange('meeting_link', e.target.value)}
+                      placeholder="https://meet.google.com/..."
+                    />
+                  </div>
+                )}
+                {form.meeting_type === 'offline' && (
+                  <div>
+                    <label style={labelStyle}>Meeting Location / Address</label>
+                    <input
+                      style={inputStyle}
+                      value={form.meeting_link}
+                      onChange={e => handleChange('meeting_link', e.target.value)}
+                      placeholder="e.g. Client Office, Hyderabad"
+                    />
+                  </div>
+                )}
+              </div>
+              {/* Meeting notes */}
+              <div>
+                <label style={labelStyle}>Meeting Agenda / Notes</label>
+                <textarea
+                  style={{ ...inputStyle, minHeight: '60px', resize: 'vertical' }}
+                  value={form.meeting_notes}
+                  onChange={e => handleChange('meeting_notes', e.target.value)}
+                  placeholder="What topics to cover, demo points, client requirements..."
+                />
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>

@@ -166,10 +166,20 @@ async function initDB() {
         assignee_id INTEGER REFERENCES users(id),
         notes TEXT,
         expected_close_date DATE,
+        meeting_type TEXT DEFAULT '',
+        meeting_date TIMESTAMP,
+        meeting_link TEXT DEFAULT '',
+        meeting_notes TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Migrations for existing DBs
+    await pool.query(`ALTER TABLE deals ADD COLUMN IF NOT EXISTS meeting_type TEXT DEFAULT ''`).catch(() => {});
+    await pool.query(`ALTER TABLE deals ADD COLUMN IF NOT EXISTS meeting_date TIMESTAMP`).catch(() => {});
+    await pool.query(`ALTER TABLE deals ADD COLUMN IF NOT EXISTS meeting_link TEXT DEFAULT ''`).catch(() => {});
+    await pool.query(`ALTER TABLE deals ADD COLUMN IF NOT EXISTS meeting_notes TEXT DEFAULT ''`).catch(() => {});
 
     console.log('Tables created/verified');
 

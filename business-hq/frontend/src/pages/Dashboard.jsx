@@ -163,6 +163,12 @@ export default function Dashboard() {
   const wonValue = wonDeals.reduce((s, d) => s + (d.value || 0), 0);
   const topDeals = activeDeals.sort((a,b) => b.value - a.value).slice(0, 3);
 
+  // Upcoming lead meetings
+  const upcomingMeetings = deals
+    .filter(d => d.stage === 'meeting_scheduled' && d.meeting_date && new Date(d.meeting_date) >= new Date())
+    .sort((a, b) => new Date(a.meeting_date) - new Date(b.meeting_date))
+    .slice(0, 4);
+
   // Business health per workspace
   const workspaces = [
     { name: 'Krispies', emoji: '🥐', color: '#f59e0b', bg: '#fffbeb' },
@@ -282,6 +288,56 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── UPCOMING LEAD MEETINGS ───────────────────────────────── */}
+      {upcomingMeetings.length > 0 && (
+        <div style={{ background: 'linear-gradient(135deg, #ecfeff, #f0fdff)', border: '1px solid #06b6d425', borderRadius: '16px', padding: '16px 20px', marginBottom: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>📞</span>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#0e7490' }}>Upcoming Lead Meetings</div>
+                <div style={{ fontSize: '11px', color: '#67e8f9', marginTop: '1px' }}>{upcomingMeetings.length} meeting{upcomingMeetings.length > 1 ? 's' : ''} scheduled</div>
+              </div>
+            </div>
+            <button onClick={() => navigate('/pipeline')} style={{ background: 'white', border: '1px solid #06b6d430', color: '#06b6d4', fontSize: '11px', fontWeight: '700', padding: '5px 12px', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+              View Pipeline →
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+            {upcomingMeetings.map(deal => {
+              const mDate = new Date(deal.meeting_date);
+              const isToday = mDate.toDateString() === now.toDateString();
+              const isTomorrow = mDate.toDateString() === new Date(now.getTime() + 86400000).toDateString();
+              const dateLabel = isToday ? 'Today' : isTomorrow ? 'Tomorrow' : mDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+              return (
+                <div key={deal.id} style={{ background: 'white', borderRadius: '12px', padding: '12px 14px', border: `1px solid ${isToday ? '#06b6d440' : '#f0f0f5'}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: isToday ? '#06b6d4' : '#ecfeff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: isToday ? 'white' : '#06b6d4' }}>{dateLabel}</div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: isToday ? 'white' : '#0e7490' }}>{mDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deal.company}</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <span>{deal.meeting_type === 'online' ? '💻' : '🤝'}</span>
+                      <span>{deal.meeting_type === 'online' ? 'Online' : 'In-Person'}</span>
+                      {deal.assignee_name && <><span>·</span><span>{deal.assignee_name}</span></>}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#0e7490' }}>{formatCurrency(deal.value)}</div>
+                    {deal.meeting_link && (
+                      <button onClick={() => window.open(deal.meeting_link, '_blank')} style={{ fontSize: '10px', background: '#06b6d4', color: 'white', border: 'none', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', marginTop: '4px', fontFamily: 'inherit', fontWeight: '700' }}>
+                        Join →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── WORKSPACE HEALTH ROW ──────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
