@@ -2,17 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
 import api from '../api';
-import { Avatar } from '../components/Sidebar';
 
 // ─── Workspace filter pills ────────────────────────────────────────────────
 
 const workspaceFilters = [
   { label: 'All Workspaces', value: 'all' },
-  { label: '🥐 Krispies', value: 'krispies' },
-  { label: '🤖 Solvv AI', value: 'solvv' },
-  { label: '🎬 Krispies Content', value: 'content' },
-  { label: '🤖 Solvv Content', value: 'solvcontent' },
-  { label: "📺 Surabhi's Channel", value: 'channel' },
+  { label: '🥐 Krispies', value: 'Krispies' },
+  { label: '🤖 Solvv AI', value: 'Solvv AI' },
+  { label: '🎬 Krispies Content', value: 'Krispies Content' },
+  { label: '🤖 Solvv Content', value: 'Solvv Content' },
+  { label: "📺 Surabhi's Channel", value: "Surabhi's Channel" },
 ];
 
 function WorkspaceFilterPills({ active, onSelect }) {
@@ -23,15 +22,10 @@ function WorkspaceFilterPills({ active, onSelect }) {
           key={f.value}
           onClick={() => onSelect(f.value)}
           style={{
-            padding: '7px 16px',
-            borderRadius: '20px',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer',
+            padding: '7px 16px', borderRadius: '20px', fontSize: '13px',
+            fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
             border: active === f.value ? 'none' : '1px solid #e8e8ed',
-            background: active === f.value
-              ? 'linear-gradient(135deg, #6c63ff, #3b82f6)'
-              : 'white',
+            background: active === f.value ? 'linear-gradient(135deg, #6c63ff, #3b82f6)' : 'white',
             color: active === f.value ? 'white' : '#6b7280',
             boxShadow: active === f.value ? '0 4px 12px rgba(108,99,255,0.25)' : 'none',
             transition: 'all 0.15s ease'
@@ -40,6 +34,146 @@ function WorkspaceFilterPills({ active, onSelect }) {
           {f.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+// ─── Focus Mode Overlay ────────────────────────────────────────────────────
+
+function FocusMode({ tasks, meetings, onClose }) {
+  const now = new Date();
+  const dueTasks = tasks.filter(t => t.status !== 'done' && t.due_date &&
+    new Date(t.due_date).toDateString() === now.toDateString());
+  const inProgress = tasks.filter(t => t.status === 'inprogress');
+  const todayMeetings = meetings || [];
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      background: 'rgba(15,15,30,0.85)',
+      backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div style={{
+        background: 'white', borderRadius: '24px',
+        width: '100%', maxWidth: '680px',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.3)',
+        overflow: 'hidden'
+      }}>
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #6c63ff, #3b82f6)',
+          padding: '24px 28px', color: 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        }}>
+          <div>
+            <div style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.5px' }}>⚡ Focus Mode</div>
+            <div style={{ fontSize: '13px', opacity: 0.8, marginTop: '4px' }}>
+              {now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
+            width: '36px', height: '36px', borderRadius: '10px', cursor: 'pointer',
+            fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>×</button>
+        </div>
+
+        <div style={{ padding: '24px 28px', maxHeight: '70vh', overflowY: 'auto' }}>
+          {/* Today's meetings */}
+          {todayMeetings.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: '#9ca3af', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px' }}>
+                📅 Meetings Today
+              </div>
+              {todayMeetings.map(m => (
+                <div key={m.id} style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '12px', borderRadius: '12px', background: '#f5f3ff',
+                  border: '1px solid #e8e4ff', marginBottom: '8px'
+                }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#6c63ff', minWidth: '55px' }}>
+                    {new Date(m.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <div style={{ flex: 1, fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>{m.title}</div>
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: m.workspace_color || '#6c63ff',
+                    background: `${m.workspace_color || '#6c63ff'}15`, padding: '2px 8px', borderRadius: '6px' }}>
+                    {m.workspace_emoji} {m.workspace_name}
+                  </span>
+                  {m.meeting_url && (
+                    <button onClick={() => window.open(m.meeting_url, '_blank')} style={{
+                      background: 'linear-gradient(135deg, #6c63ff, #3b82f6)', color: 'white',
+                      border: 'none', borderRadius: '8px', padding: '5px 12px',
+                      fontSize: '11px', fontWeight: '700', cursor: 'pointer'
+                    }}>Join →</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Due today tasks */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ fontSize: '12px', fontWeight: '700', color: '#9ca3af', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px' }}>
+              🔥 Due Today ({dueTasks.length})
+            </div>
+            {dueTasks.length === 0 ? (
+              <div style={{ color: '#9ca3af', fontSize: '13px', padding: '12px', background: '#f9f9fb', borderRadius: '10px', textAlign: 'center' }}>
+                🎉 Nothing due today!
+              </div>
+            ) : dueTasks.map(t => (
+              <div key={t.id} style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '12px', borderRadius: '12px', background: '#fff5f5',
+                border: '1px solid #fecaca', marginBottom: '8px'
+              }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
+                <div style={{ flex: 1, fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>{t.title}</div>
+                <span style={{ fontSize: '11px', color: t.workspace_color || '#6c63ff',
+                  background: `${t.workspace_color || '#6c63ff'}15`, padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                  {t.workspace_emoji} {t.workspace_name}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* In progress */}
+          <div>
+            <div style={{ fontSize: '12px', fontWeight: '700', color: '#9ca3af', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px' }}>
+              ⚡ In Progress ({inProgress.length})
+            </div>
+            {inProgress.length === 0 ? (
+              <div style={{ color: '#9ca3af', fontSize: '13px', padding: '12px', background: '#f9f9fb', borderRadius: '10px', textAlign: 'center' }}>
+                No tasks in progress
+              </div>
+            ) : inProgress.map(t => (
+              <div key={t.id} style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '12px', borderRadius: '12px', background: '#eff6ff',
+                border: '1px solid #bfdbfe', marginBottom: '8px'
+              }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
+                <div style={{ flex: 1, fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>{t.title}</div>
+                <span style={{ fontSize: '11px', color: t.workspace_color || '#6c63ff',
+                  background: `${t.workspace_color || '#6c63ff'}15`, padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                  {t.workspace_emoji} {t.workspace_name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ padding: '16px 28px', borderTop: '1px solid #f0f0f5', display: 'flex', justifyContent: 'center' }}>
+          <button onClick={onClose} style={{
+            background: 'linear-gradient(135deg, #6c63ff, #3b82f6)', color: 'white',
+            border: 'none', borderRadius: '12px', padding: '12px 32px',
+            fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit'
+          }}>
+            Exit Focus Mode
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -53,7 +187,6 @@ function StatCard({ label, value, icon, color, badge, badgeColor, progressValue 
       border: '1px solid #f0f0f5', boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
       padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px'
     }}>
-      {/* Top row: icon + badge */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{
           width: '40px', height: '40px', borderRadius: '12px',
@@ -66,27 +199,22 @@ function StatCard({ label, value, icon, color, badge, badgeColor, progressValue 
         {badge && (
           <span style={{
             padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700',
-            background: `${badgeColor || color}18`,
-            color: badgeColor || color
+            background: `${badgeColor || color}18`, color: badgeColor || color
           }}>
             {badge}
           </span>
         )}
       </div>
-      {/* Value + label */}
       <div>
         <div style={{ fontSize: '32px', fontWeight: '900', color: '#1a1a2e', lineHeight: 1 }}>{value}</div>
         <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px', fontWeight: '500' }}>{label}</div>
       </div>
-      {/* Progress bar */}
       {progressValue !== undefined && (
         <div style={{ height: '4px', background: '#f0f0f5', borderRadius: '4px', overflow: 'hidden' }}>
           <div style={{
-            height: '100%',
-            width: `${Math.min(progressValue, 100)}%`,
+            height: '100%', width: `${Math.min(progressValue, 100)}%`,
             background: `linear-gradient(90deg, ${color}, ${color}aa)`,
-            borderRadius: '4px',
-            transition: 'width 0.5s ease'
+            borderRadius: '4px', transition: 'width 0.5s ease'
           }} />
         </div>
       )}
@@ -96,10 +224,8 @@ function StatCard({ label, value, icon, color, badge, badgeColor, progressValue 
 
 // ─── Morning Briefing banner ───────────────────────────────────────────────
 
-function MorningBriefing({ stats }) {
-  const now = new Date();
-  const hour = now.getHours();
-
+function MorningBriefing({ stats, onFocusMode }) {
+  const hour = new Date().getHours();
   const items = [
     { label: 'Due Today', value: stats?.tasks_due_today || 0 },
     { label: 'Meetings', value: stats?.meetings_today || 0 },
@@ -110,23 +236,16 @@ function MorningBriefing({ stats }) {
   return (
     <div style={{
       background: 'linear-gradient(135deg, #6c63ff 0%, #3b82f6 100%)',
-      borderRadius: '20px', padding: '24px 28px',
-      marginBottom: '20px',
-      color: 'white',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      flexWrap: 'wrap', gap: '16px'
+      borderRadius: '20px', padding: '24px 28px', marginBottom: '20px',
+      color: 'white', display: 'flex', alignItems: 'center',
+      justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px'
     }}>
-      {/* Left: icon + title */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
         <div style={{
           width: '48px', height: '48px', borderRadius: '14px',
-          background: 'rgba(255,255,255,0.18)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '22px'
-        }}>
-          ⚡
-        </div>
+          background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px'
+        }}>⚡</div>
         <div>
           <div style={{ fontWeight: '700', fontSize: '16px', letterSpacing: '-0.2px' }}>
             Morning Briefing · Your Day at a Glance
@@ -137,7 +256,6 @@ function MorningBriefing({ stats }) {
         </div>
       </div>
 
-      {/* Middle: stats */}
       <div style={{ display: 'flex', gap: '0', flex: 1, justifyContent: 'center' }}>
         {items.map((item, i) => (
           <div key={i} style={{
@@ -151,20 +269,16 @@ function MorningBriefing({ stats }) {
         ))}
       </div>
 
-      {/* Right: Focus Mode button */}
-      <button style={{
-        background: 'white',
-        color: '#6c63ff',
-        border: 'none',
-        borderRadius: '12px',
-        padding: '10px 20px',
-        fontWeight: '700',
-        fontSize: '13px',
-        cursor: 'pointer',
-        boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
-        whiteSpace: 'nowrap',
-        flexShrink: 0
-      }}>
+      <button
+        onClick={onFocusMode}
+        style={{
+          background: 'white', color: '#6c63ff', border: 'none',
+          borderRadius: '12px', padding: '10px 20px',
+          fontWeight: '700', fontSize: '13px', cursor: 'pointer',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+          whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'inherit'
+        }}
+      >
         Start Focus Mode ⚡
       </button>
     </div>
@@ -189,31 +303,24 @@ function WorkspaceBadge({ workspace }) {
 
 // ─── Kanban column ─────────────────────────────────────────────────────────
 
-function KanbanColumn({ title, tasks, color, status, bgColor }) {
+function KanbanColumn({ title, tasks, color, bgColor }) {
   const navigate = useNavigate();
   return (
     <div style={{ flex: 1, minWidth: '180px' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px'
-      }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color }} />
         <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{title}</span>
-        <span style={{
-          background: bgColor, color: color,
-          borderRadius: '6px', padding: '1px 8px', fontSize: '12px', fontWeight: '700'
-        }}>{tasks.length}</span>
+        <span style={{ background: bgColor, color, borderRadius: '6px', padding: '1px 8px', fontSize: '12px', fontWeight: '700' }}>
+          {tasks.length}
+        </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {tasks.slice(0, 4).map(task => (
-          <div
-            key={task.id}
-            className="kanban-card"
-            onClick={() => navigate('/tasks')}
+          <div key={task.id} onClick={() => navigate('/tasks')}
             style={{
-              background: 'white', borderRadius: '12px',
-              padding: '12px', cursor: 'pointer',
-              border: '1px solid #f0f0f5',
-              boxShadow: '0 1px 6px rgba(0,0,0,0.04)'
+              background: 'white', borderRadius: '12px', padding: '12px',
+              cursor: 'pointer', border: '1px solid #f0f0f5',
+              boxShadow: '0 1px 6px rgba(0,0,0,0.04)', transition: 'all 0.15s'
             }}
           >
             <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a2e', marginBottom: '8px', lineHeight: 1.4 }}>
@@ -226,8 +333,7 @@ function KanbanColumn({ title, tasks, color, status, bgColor }) {
                   width: '22px', height: '22px', borderRadius: '50%',
                   background: task.assignee_color || '#6c63ff',
                   color: 'white', fontSize: '10px', fontWeight: '700',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }} title={task.assignee_name}>
                   {task.assignee_name[0]}
                 </div>
@@ -236,14 +342,11 @@ function KanbanColumn({ title, tasks, color, status, bgColor }) {
           </div>
         ))}
         {tasks.length > 4 && (
-          <button
-            onClick={() => navigate('/tasks')}
-            style={{
-              background: 'none', border: '1.5px dashed #e0e0ef',
-              borderRadius: '10px', padding: '8px', cursor: 'pointer',
-              fontSize: '12px', color: '#9ca3af', fontWeight: '500'
-            }}
-          >
+          <button onClick={() => navigate('/tasks')} style={{
+            background: 'none', border: '1.5px dashed #e0e0ef',
+            borderRadius: '10px', padding: '8px', cursor: 'pointer',
+            fontSize: '12px', color: '#9ca3af', fontWeight: '500', fontFamily: 'inherit'
+          }}>
             +{tasks.length - 4} more tasks
           </button>
         )}
@@ -255,6 +358,7 @@ function KanbanColumn({ title, tasks, color, status, bgColor }) {
 // ─── Today's Meetings panel ────────────────────────────────────────────────
 
 function MeetingsPanel({ meetings }) {
+  const navigate = useNavigate();
   const now = new Date();
 
   function isLiveNow(m) {
@@ -270,21 +374,19 @@ function MeetingsPanel({ meetings }) {
       padding: '20px', height: '100%'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>
-          Today's Meetings
-        </h3>
-        <span style={{
-          background: '#eff6ff', color: '#3b82f6',
-          borderRadius: '6px', padding: '2px 8px', fontSize: '12px', fontWeight: '700'
-        }}>
-          {(meetings || []).length}
-        </span>
+        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>Today's Meetings</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ background: '#eff6ff', color: '#3b82f6', borderRadius: '6px', padding: '2px 8px', fontSize: '12px', fontWeight: '700' }}>
+            {(meetings || []).length}
+          </span>
+          <button onClick={() => navigate('/meetings')} style={{
+            background: 'none', border: 'none', color: '#6c63ff',
+            fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit'
+          }}>+ Schedule</button>
+        </div>
       </div>
       {(meetings || []).length === 0 ? (
-        <div style={{
-          background: '#f9f9fb', borderRadius: '12px', padding: '20px',
-          textAlign: 'center', color: '#9ca3af', fontSize: '13px'
-        }}>
+        <div style={{ background: '#f9f9fb', borderRadius: '12px', padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
           🎉 No meetings today!
         </div>
       ) : (
@@ -298,29 +400,20 @@ function MeetingsPanel({ meetings }) {
                 background: live ? '#f5f3ff' : '#f9f9fb',
                 display: 'flex', gap: '12px', alignItems: 'flex-start'
               }}>
-                {/* Time column */}
                 <div style={{ flexShrink: 0, textAlign: 'center', minWidth: '50px' }}>
                   <div style={{ fontSize: '12px', fontWeight: '700', color: live ? '#6c63ff' : '#374151' }}>
                     {new Date(m.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>
-                    {m.duration_mins} min
-                  </div>
+                  <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>{m.duration_mins} min</div>
                 </div>
-                {/* Details */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a2e' }}>
-                      {m.title}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a2e' }}>{m.title}</span>
                     {live && (
                       <span style={{
-                        background: '#ef4444', color: 'white',
-                        borderRadius: '4px', padding: '1px 6px',
-                        fontSize: '10px', fontWeight: '700', letterSpacing: '0.5px'
-                      }}>
-                        LIVE NOW
-                      </span>
+                        background: '#ef4444', color: 'white', borderRadius: '4px',
+                        padding: '1px 6px', fontSize: '10px', fontWeight: '700', letterSpacing: '0.5px'
+                      }}>LIVE NOW</span>
                     )}
                   </div>
                   <span style={{
@@ -333,13 +426,15 @@ function MeetingsPanel({ meetings }) {
                     {m.workspace_emoji} {m.workspace_name}
                   </span>
                 </div>
-                {/* Join button */}
-                <button style={{
-                  background: 'linear-gradient(135deg, #6c63ff, #3b82f6)',
-                  color: 'white', border: 'none', borderRadius: '8px',
-                  padding: '6px 12px', fontSize: '11px', fontWeight: '700',
-                  cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
-                }}>
+                <button
+                  onClick={() => m.meeting_url ? window.open(m.meeting_url, '_blank') : navigate('/meetings')}
+                  style={{
+                    background: 'linear-gradient(135deg, #6c63ff, #3b82f6)',
+                    color: 'white', border: 'none', borderRadius: '8px',
+                    padding: '6px 12px', fontSize: '11px', fontWeight: '700',
+                    cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'inherit'
+                  }}
+                >
                   Join →
                 </button>
               </div>
@@ -360,34 +455,27 @@ function TeamActivityPanel({ activity }) {
       border: '1px solid #f0f0f5', boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
       padding: '20px'
     }}>
-      <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>
-        ⚡ Team Activity
-      </h3>
+      <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>⚡ Team Activity</h3>
       {(activity || []).length === 0 ? (
-        <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '20px' }}>
-          No recent activity
-        </div>
+        <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '20px' }}>No recent activity</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
           {(activity || []).map((item, i) => (
             <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: '12px',
-              padding: '10px 0',
+              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0',
               borderBottom: i < activity.length - 1 ? '1px solid #f9f9fb' : 'none'
             }}>
               <div style={{
                 width: '32px', height: '32px', borderRadius: '50%',
-                background: item.avatar_color || '#6c63ff',
-                color: 'white', fontSize: '13px', fontWeight: '700',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0
+                background: item.avatar_color || '#6c63ff', color: 'white',
+                fontSize: '13px', fontWeight: '700',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
               }}>
                 {item.user_name?.[0] || '?'}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '13px', color: '#1a1a2e' }}>
-                  <span style={{ fontWeight: '600' }}>{item.user_name}</span>
-                  {' created '}
+                  <span style={{ fontWeight: '600' }}>{item.user_name}</span>{' created '}
                   <span style={{ fontWeight: '500' }}>{item.title}</span>
                 </div>
                 <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
@@ -412,6 +500,7 @@ function TeamActivityPanel({ activity }) {
 // ─── Team Updates feed ─────────────────────────────────────────────────────
 
 function TeamUpdatesPanel({ updates }) {
+  const navigate = useNavigate();
   return (
     <div style={{
       background: 'white', borderRadius: '16px',
@@ -419,22 +508,22 @@ function TeamUpdatesPanel({ updates }) {
       padding: '20px'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>
-          📢 Team Updates
-        </h3>
-        <a href="/updates" style={{ fontSize: '12px', color: '#6c63ff', textDecoration: 'none', fontWeight: '500' }}>
-          View all
-        </a>
+        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>📢 Team Updates</h3>
+        <button onClick={() => navigate('/updates')} style={{
+          background: 'none', border: 'none', color: '#6c63ff',
+          fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit'
+        }}>View all</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {(updates || []).map((upd, i) => (
+        {(updates || []).length === 0 ? (
+          <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '20px' }}>No updates yet</div>
+        ) : (updates || []).map((upd, i) => (
           <div key={upd.id || i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
             <div style={{
               width: '30px', height: '30px', borderRadius: '50%',
-              background: upd.avatar_color || '#6c63ff',
-              color: 'white', fontSize: '12px', fontWeight: '700',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0
+              background: upd.avatar_color || '#6c63ff', color: 'white',
+              fontSize: '12px', fontWeight: '700',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
             }}>
               {upd.user_name?.[0] || '?'}
             </div>
@@ -453,9 +542,8 @@ function TeamUpdatesPanel({ updates }) {
                 {upd.content}
               </div>
               {upd.likes_count !== undefined && (
-                <div style={{ marginTop: '6px', fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>❤️</span>
-                  <span>{upd.likes_count} likes</span>
+                <div style={{ marginTop: '4px', fontSize: '11px', color: '#9ca3af' }}>
+                  ❤️ {upd.likes_count} likes
                 </div>
               )}
             </div>
@@ -468,15 +556,8 @@ function TeamUpdatesPanel({ updates }) {
 
 // ─── Team Overview panel ───────────────────────────────────────────────────
 
-const hardcodedTeam = [
-  { name: 'Surabhi', role: 'Admin', color: 'linear-gradient(135deg, #6c63ff, #3b82f6)', online: true, tasks: 8 },
-  { name: 'Shilpa', role: 'Member', color: 'linear-gradient(135deg, #f59e0b, #ef4444)', online: true, tasks: 5 },
-  { name: 'Tejas', role: 'Member', color: 'linear-gradient(135deg, #10b981, #06b6d4)', online: false, tasks: 3 },
-  { name: 'Ritesh', role: 'Member', color: 'linear-gradient(135deg, #db2777, #9333ea)', online: true, tasks: 6 },
-  { name: 'Sneha', role: 'Member', color: 'linear-gradient(135deg, #f97316, #eab308)', online: false, tasks: 4 },
-];
-
-function TeamOverviewPanel({ stats }) {
+function TeamOverviewPanel({ teamMembers }) {
+  const navigate = useNavigate();
   return (
     <div style={{
       background: 'white', borderRadius: '16px',
@@ -484,42 +565,43 @@ function TeamOverviewPanel({ stats }) {
       padding: '20px'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>
-          👥 Team
-        </h3>
-        <a href="/team" style={{ fontSize: '12px', color: '#6c63ff', textDecoration: 'none', fontWeight: '500' }}>
-          View all
-        </a>
+        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>👥 Team</h3>
+        <button onClick={() => navigate('/team')} style={{
+          background: 'none', border: 'none', color: '#6c63ff',
+          fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit'
+        }}>View all</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {hardcodedTeam.map((member, i) => (
+        {(teamMembers || []).map((member, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Avatar with online dot */}
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <div style={{
                 width: '34px', height: '34px', borderRadius: '50%',
-                background: member.color,
+                background: member.avatar_color || '#6c63ff',
                 color: 'white', fontSize: '13px', fontWeight: '700',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-                {member.name[0]}
+                {member.name?.[0] || '?'}
               </div>
               <span style={{
-                position: 'absolute', bottom: '0', right: '0',
+                position: 'absolute', bottom: 0, right: 0,
                 width: '9px', height: '9px', borderRadius: '50%',
-                background: member.online ? '#10b981' : '#d1d5db',
-                border: '1.5px solid white'
+                background: '#10b981', border: '1.5px solid white'
               }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a2e' }}>{member.name}</div>
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a2e' }}>
+                {member.name}
+                {member.role === 'admin' && (
+                  <span style={{ marginLeft: '6px', fontSize: '10px', background: '#ede9ff', color: '#6c63ff', padding: '1px 6px', borderRadius: '4px', fontWeight: '700' }}>
+                    Admin
+                  </span>
+                )}
+              </div>
               <div style={{ fontSize: '11px', color: '#9ca3af' }}>{member.role}</div>
             </div>
-            <div style={{
-              fontSize: '12px', color: '#6b7280', fontWeight: '600',
-              background: '#f3f4f6', borderRadius: '8px', padding: '2px 8px'
-            }}>
-              {member.tasks} tasks
+            <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600', background: '#f3f4f6', borderRadius: '8px', padding: '2px 8px' }}>
+              {member.task_count || 0} tasks
             </div>
           </div>
         ))}
@@ -531,11 +613,12 @@ function TeamOverviewPanel({ stats }) {
 // ─── Main Dashboard ────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const { user, addToast } = useApp();
+  const { addToast } = useApp();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [allTasks, setAllTasks] = useState([]);
   const [activeWorkspace, setActiveWorkspace] = useState('all');
+  const [focusMode, setFocusMode] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -559,92 +642,73 @@ export default function Dashboard() {
   );
 
   const stats = data?.stats || {};
-  const todoTasks = allTasks.filter(t => t.status === 'todo');
-  const inProgressTasks = allTasks.filter(t => t.status === 'inprogress');
-  const doneTasks = allTasks.filter(t => t.status === 'done');
+
+  // Filter tasks by selected workspace
+  const filteredTasks = activeWorkspace === 'all'
+    ? allTasks
+    : allTasks.filter(t => t.workspace_name === activeWorkspace);
+
+  const todoTasks = filteredTasks.filter(t => t.status === 'todo');
+  const inProgressTasks = filteredTasks.filter(t => t.status === 'inprogress');
+  const doneTasks = filteredTasks.filter(t => t.status === 'done');
 
   const totalTasks = stats.total || 0;
   const doneCount = stats.done || 0;
-  const doneProgress = totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
   const inprogressCount = stats.inprogress || 0;
+  const doneProgress = totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
   const inprogressProgress = totalTasks > 0 ? Math.round((inprogressCount / totalTasks) * 100) : 0;
 
   return (
     <div className="fade-in">
+      {/* Focus Mode overlay */}
+      {focusMode && (
+        <FocusMode
+          tasks={allTasks}
+          meetings={data?.today_meetings || []}
+          onClose={() => setFocusMode(false)}
+        />
+      )}
+
       {/* Morning briefing */}
-      <MorningBriefing stats={stats} />
+      <MorningBriefing stats={stats} onFocusMode={() => setFocusMode(true)} />
 
       {/* Workspace filter pills */}
       <WorkspaceFilterPills active={activeWorkspace} onSelect={setActiveWorkspace} />
 
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <StatCard
-          label="Total Tasks"
-          value={totalTasks}
-          icon="✅"
-          color="#6c63ff"
-          badge="↑ 12%"
-          badgeColor="#10b981"
-          progressValue={60}
-        />
-        <StatCard
-          label="In Progress"
-          value={inprogressCount}
-          icon="⚡"
-          color="#f97316"
-          badge="Today"
-          badgeColor="#f97316"
-          progressValue={inprogressProgress}
-        />
-        <StatCard
-          label="Completed"
-          value={doneCount}
-          icon="🎯"
-          color="#10b981"
-          badge="↑ 8%"
-          badgeColor="#10b981"
-          progressValue={doneProgress}
-        />
-        <StatCard
-          label="Due Today"
-          value={stats.tasks_due_today || 0}
-          icon="🔥"
-          color="#ef4444"
-          badge="1 blocked"
-          badgeColor="#ef4444"
-          progressValue={stats.tasks_due_today ? Math.min(stats.tasks_due_today * 10, 100) : 0}
-        />
+        <StatCard label="Total Tasks" value={totalTasks} icon="✅" color="#6c63ff" badge="↑ 12%" badgeColor="#10b981" progressValue={60} />
+        <StatCard label="In Progress" value={inprogressCount} icon="⚡" color="#f97316" badge="Today" badgeColor="#f97316" progressValue={inprogressProgress} />
+        <StatCard label="Completed" value={doneCount} icon="🎯" color="#10b981" badge="↑ 8%" badgeColor="#10b981" progressValue={doneProgress} />
+        <StatCard label="Due Today" value={stats.tasks_due_today || 0} icon="🔥" color="#ef4444" badge="1 blocked" badgeColor="#ef4444" progressValue={stats.tasks_due_today ? Math.min(stats.tasks_due_today * 10, 100) : 0} />
       </div>
 
-      {/* Top section: Task Board (left) + Meetings (right) */}
+      {/* Top section: Task Board + Meetings */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 370px', gap: '20px', marginBottom: '20px' }}>
-        {/* Task Board */}
         <div style={{
           background: 'white', borderRadius: '16px',
           border: '1px solid #f0f0f5', boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
           padding: '20px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>Task Board</h3>
-            <a href="/tasks" style={{
-              fontSize: '13px', color: '#6c63ff', fontWeight: '500',
-              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px'
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>📋 Task Board</h3>
+            <button onClick={() => window.location.href = '/tasks'} style={{
+              background: 'none', border: 'none', color: '#6c63ff',
+              fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'inherit'
             }}>
               View all
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
-            </a>
+            </button>
           </div>
           <div style={{ display: 'flex', gap: '16px' }}>
-            <KanbanColumn title="To Do" tasks={todoTasks} color="#6b7280" bgColor="#f3f4f6" status="todo" />
-            <KanbanColumn title="In Progress" tasks={inProgressTasks} color="#3b82f6" bgColor="#eff6ff" status="inprogress" />
-            <KanbanColumn title="Done" tasks={doneTasks} color="#16a34a" bgColor="#f0fdf4" status="done" />
+            <KanbanColumn title="To Do" tasks={todoTasks} color="#6b7280" bgColor="#f3f4f6" />
+            <KanbanColumn title="In Progress" tasks={inProgressTasks} color="#3b82f6" bgColor="#eff6ff" />
+            <KanbanColumn title="Done" tasks={doneTasks} color="#16a34a" bgColor="#f0fdf4" />
           </div>
         </div>
-
-        {/* Today's Meetings */}
         <MeetingsPanel meetings={data?.today_meetings} />
       </div>
 
@@ -652,7 +716,7 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 320px', gap: '20px' }}>
         <TeamActivityPanel activity={data?.recent_activity} />
         <TeamUpdatesPanel updates={data?.recent_updates} />
-        <TeamOverviewPanel stats={stats} />
+        <TeamOverviewPanel teamMembers={data?.team_members} />
       </div>
     </div>
   );

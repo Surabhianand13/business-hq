@@ -115,11 +115,22 @@ router.get('/', auth, async (req, res) => {
     const updatesResult = await pool.query(`
       SELECT upd.id, upd.content, upd.created_at,
         u.name AS user_name, u.avatar_color,
-        w.name AS workspace_name, w.emoji AS workspace_emoji, w.color AS workspace_color
+        w.name AS workspace_name, w.emoji AS workspace_emoji, w.color AS workspace_color,
+        (SELECT COUNT(*) FROM update_likes ul WHERE ul.update_id = upd.id) AS likes_count
       FROM updates upd
       LEFT JOIN users u ON upd.user_id = u.id
       LEFT JOIN workspaces w ON upd.workspace_id = w.id
       ORDER BY upd.created_at DESC LIMIT 5
+    `);
+
+    // Team members with task counts
+    const teamResult = await pool.query(`
+      SELECT u.id, u.name, u.avatar_color, u.role,
+        COUNT(CASE WHEN t.status != 'done' THEN 1 END) AS task_count
+      FROM users u
+      LEFT JOIN tasks t ON t.assignee_id = u.id
+      GROUP BY u.id, u.name, u.avatar_color, u.role
+      ORDER BY u.name
     `);
 
     res.json({
@@ -134,7 +145,8 @@ router.get('/', auth, async (req, res) => {
       },
       today_meetings: todayMeetingsResult.rows,
       recent_activity: activityResult.rows,
-      recent_updates: updatesResult.rows
+      recent_updates: updatesResult.rows,
+      team_members: teamResult.rows
     });
   } catch (err) {
     console.error('Dashboard error:', err);
