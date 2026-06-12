@@ -99,7 +99,7 @@ const ROW_ORDER = [
   'Pest Control Service', 'Deep Cleaning',
 ];
 
-function RenewalMatrix({ heading, subtitle, rows, matrixStores, matrixMap, freqByTitle, onCellClick }) {
+function RenewalMatrix({ heading, subtitle, rows, matrixStores, matrixMap, freqByTitle, onCellClick, onEmptyClick }) {
   if (rows.length === 0) return null;
   return (
     <div style={{ marginBottom: '24px' }}>
@@ -137,7 +137,19 @@ function RenewalMatrix({ heading, subtitle, rows, matrixStores, matrixMap, freqB
                 </td>
                 {matrixStores.map(s => {
                   const r = matrixMap[`${title}|${s.id}`];
-                  if (!r) return <td key={s.id} style={{ textAlign: 'center', color: '#e8e8ed' }}>—</td>;
+                  if (!r) return (
+                    <td key={s.id} style={{ textAlign: 'center', padding: '7px 8px' }}>
+                      <button
+                        onClick={() => onEmptyClick(title, s.id, freqByTitle[title] || 'annual')}
+                        title={`Add ${title} for ${s.name}`}
+                        style={{
+                          width: '92px', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit',
+                          border: '1.5px dashed #e0e0ef', background: 'white', padding: '8px 4px',
+                          color: '#c0c0d0', fontSize: '15px', fontWeight: '700', margin: '0 auto',
+                        }}
+                      >+</button>
+                    </td>
+                  );
                   const st = statusFor(r.due_date);
                   return (
                     <td key={s.id} style={{ textAlign: 'center', padding: '7px 8px' }}>
@@ -172,6 +184,8 @@ export default function KrispiesRenewalsPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [prefill, setPrefill] = useState(null);
+  const [lockStore, setLockStore] = useState(false);
 
   async function load() {
     try {
@@ -259,8 +273,16 @@ export default function KrispiesRenewalsPage() {
     }
   }
 
-  function openAdd() { setEditing(null); setModalOpen(true); }
-  function openEdit(r) { setEditing(r); setModalOpen(true); }
+  function openAdd() { setEditing(null); setPrefill(null); setLockStore(false); setModalOpen(true); }
+  // Editing a matrix cell: lock the store so it can't be accidentally reassigned
+  function openEdit(r) { setEditing(r); setPrefill(null); setLockStore(true); setModalOpen(true); }
+  // Tapping an empty matrix cell: create a new renewal for that exact store + type (store locked)
+  function openEmptyCell(title, storeId, frequency) {
+    setEditing(null);
+    setPrefill({ title, store_id: storeId, frequency, category: 'licence' });
+    setLockStore(true);
+    setModalOpen(true);
+  }
 
   async function handleSave(form) {
     try {
@@ -380,6 +402,7 @@ export default function KrispiesRenewalsPage() {
             matrixMap={matrixMap}
             freqByTitle={freqByTitle}
             onCellClick={openEdit}
+            onEmptyClick={openEmptyCell}
           />
 
           {/* Monthly services matrix */}
@@ -391,6 +414,7 @@ export default function KrispiesRenewalsPage() {
             matrixMap={matrixMap}
             freqByTitle={freqByTitle}
             onCellClick={openEdit}
+            onEmptyClick={openEmptyCell}
           />
 
           {/* Business-wide (vehicle) items */}
@@ -437,6 +461,8 @@ export default function KrispiesRenewalsPage() {
       {modalOpen && (
         <RenewalModal
           editing={editing}
+          prefill={prefill}
+          lockStore={lockStore}
           stores={stores}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
@@ -448,16 +474,20 @@ export default function KrispiesRenewalsPage() {
   );
 }
 
-function RenewalModal({ editing, stores, onClose, onSave, onDelete, onMarkDone }) {
+function RenewalModal({ editing, prefill, lockStore, stores, onClose, onSave, onDelete, onMarkDone }) {
+  const init = editing || prefill || {};
   const [form, setForm] = useState({
-    title: editing?.title || '',
-    category: editing?.category || 'licence',
-    frequency: editing?.frequency || 'annual',
-    store_id: editing?.store_id ? String(editing.store_id) : '',
-    due_date: editing?.due_date ? new Date(editing.due_date).toISOString().split('T')[0] : '',
-    responsible: editing?.responsible || '',
-    notes: editing?.notes || '',
+    title: init.title || '',
+    category: init.category || 'licence',
+    frequency: init.frequency || 'annual',
+    store_id: init.store_id ? String(init.store_id) : '',
+    due_date: init.due_date ? new Date(init.due_date).toISOString().split('T')[0] : '',
+    responsible: init.responsible || '',
+    notes: init.notes || '',
   });
+  const lockedStoreName = form.store_id
+    ? (stores.find(s => String(s.id) === String(form.store_id))?.name || 'Store')
+    : 'Business-wide';
 
   function set(k, v) { setForm(prev => ({ ...prev, [k]: v })); }
 
@@ -499,7 +529,11 @@ function RenewalModal({ editing, stores, onClose, onSave, onDelete, onMarkDone }
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
             <label style={labelStyle}>Title</label>
-            <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="e.g. FSSAI Licence Renewal" style={inputStyle} autoFocus />
+            {lockStore ? (
+              <div style={{ ...inputStyle, background: '#f5f5f7', color: '#374151', fontWeight: '600' }}>{form.title}</div>
+            ) : (
+              <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="e.g. FSSAI Licence Renewal" style={inputStyle} autoFocus />
+            )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
@@ -521,10 +555,16 @@ function RenewalModal({ editing, stores, onClose, onSave, onDelete, onMarkDone }
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={labelStyle}>Store</label>
-              <select value={form.store_id} onChange={e => set('store_id', e.target.value)} style={inputStyle}>
-                <option value="">Business-wide</option>
-                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              {lockStore ? (
+                <div style={{ ...inputStyle, background: '#f5f5f7', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'not-allowed' }}>
+                  🔒 {lockedStoreName}
+                </div>
+              ) : (
+                <select value={form.store_id} onChange={e => set('store_id', e.target.value)} style={inputStyle}>
+                  <option value="">Business-wide</option>
+                  {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              )}
             </div>
             <div>
               <label style={labelStyle}>Due Date</label>
