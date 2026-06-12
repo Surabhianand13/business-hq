@@ -180,7 +180,7 @@ function buildGroups(rows) {
     const groupName = (row2[col] != null ? String(row2[col]) : '').trim();
     if (groupName) {
       // A new non-empty group name starts a new group.
-      current = { name: groupName, cashCol: null, onlineCol: null, totalCol: null };
+      current = { name: groupName, cashCol: null, onlineCol: null, totalCol: null, startCol: col };
       groups.push(current);
     }
     if (!current) continue; // columns before the first group (e.g. Date/Day) are ignored
@@ -188,6 +188,14 @@ function buildGroups(rows) {
     if (header === SHEET_HEADERS.cash) current.cashCol = col;
     else if (header === SHEET_HEADERS.online) current.onlineCol = col;
     else if (header === SHEET_HEADERS.total) current.totalCol = col;
+  }
+
+  // Fallback: a single-column store group (e.g. "Nacharam" with one "Sales"/"Total" column
+  // that doesn't match the Cash/Online/Total trio) → use its first column as the total.
+  for (const g of groups) {
+    if (g.cashCol == null && g.onlineCol == null && g.totalCol == null) {
+      g.totalCol = g.startCol;
+    }
   }
   return groups;
 }
