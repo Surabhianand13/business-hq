@@ -94,10 +94,76 @@ const TITLE_EMOJI = {
 
 // Preferred row order for the matrix
 const ROW_ORDER = [
-  'FSSAI Licence', 'Trade Licence (GHMC)', 'Shop & Establishment', 'Fire Safety NOC',
+  'FSSAI Licence', 'Trade Licence (GHMC)', 'Fire Safety NOC',
   'Labour Licence', 'Food Handler Medical', 'Weighing Scale Stamping',
   'Pest Control Service', 'Deep Cleaning',
 ];
+
+function RenewalMatrix({ heading, subtitle, rows, matrixStores, matrixMap, freqByTitle, onCellClick }) {
+  if (rows.length === 0) return null;
+  return (
+    <div style={{ marginBottom: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ fontSize: '17px', fontWeight: '800', color: '#1a1a2e' }}>{heading}</div>
+        {subtitle && <div style={{ fontSize: '12px', color: '#9ca3af' }}>{subtitle}</div>}
+      </div>
+      <div style={{ ...cardStyle, padding: 0, overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: `${200 + matrixStores.length * 110}px` }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid #f0f0f5' }}>
+              <th style={{ textAlign: 'left', padding: '14px 16px', fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', position: 'sticky', left: 0, background: 'white', minWidth: '190px' }}>
+                Renewal
+              </th>
+              {matrixStores.map(s => (
+                <th key={s.id} style={{ textAlign: 'center', padding: '14px 8px', minWidth: '104px', fontSize: '13px', fontWeight: '700', color: '#1a1a2e' }}>
+                  {s.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((title, ri) => (
+              <tr key={title} style={{ borderBottom: ri < rows.length - 1 ? '1px solid #f5f5f7' : 'none' }}>
+                <td style={{ padding: '10px 16px', position: 'sticky', left: 0, background: 'white' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '15px' }}>{TITLE_EMOJI[title] || '📋'}</span>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{title}</div>
+                      <div style={{ fontSize: '10px', color: '#c0c0d0', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                        {FREQ_LABELS[freqByTitle[title]] || ''}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                {matrixStores.map(s => {
+                  const r = matrixMap[`${title}|${s.id}`];
+                  if (!r) return <td key={s.id} style={{ textAlign: 'center', color: '#e8e8ed' }}>—</td>;
+                  const st = statusFor(r.due_date);
+                  return (
+                    <td key={s.id} style={{ textAlign: 'center', padding: '7px 8px' }}>
+                      <button
+                        onClick={() => onCellClick(r)}
+                        title={`${title} · ${s.name} — ${statusLabel(r.due_date)} (${fmtDate(r.due_date)})`}
+                        style={{
+                          width: '92px', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit',
+                          border: `1.5px solid ${st.border}`, background: st.bg, padding: '6px 4px',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', margin: '0 auto',
+                        }}
+                      >
+                        <span style={{ fontSize: '11px', fontWeight: '800', color: st.color }}>{shortDays(r.due_date)}</span>
+                        <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600' }}>{fmtShort(r.due_date)}</span>
+                      </button>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 export default function KrispiesRenewalsPage() {
   const { addToast } = useApp();
@@ -140,14 +206,25 @@ export default function KrispiesRenewalsPage() {
     return stores.filter(s => ids.has(s.id));
   }, [perStore, stores]);
 
-  // Rows = unique renewal titles, in preferred order then any extras
-  const matrixRows = useMemo(() => {
-    const titles = [...new Set(perStore.map(r => r.title))];
+  // Frequency lookup per title
+  const freqByTitle = useMemo(() => {
+    const m = {};
+    for (const r of perStore) m[r.title] = r.frequency;
+    return m;
+  }, [perStore]);
+
+  function orderedTitles(filterFn) {
+    const titles = [...new Set(perStore.filter(filterFn).map(r => r.title))];
     return titles.sort((a, b) => {
       const ia = ROW_ORDER.indexOf(a), ib = ROW_ORDER.indexOf(b);
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
-  }, [perStore]);
+  }
+
+  // Annual / non-monthly licence rows
+  const annualRows = useMemo(() => orderedTitles(r => r.frequency !== 'monthly'), [perStore]);
+  // Monthly service rows
+  const monthlyRows = useMemo(() => orderedTitles(r => r.frequency === 'monthly'), [perStore]);
 
   // Lookup: `${title}|${store_id}` -> renewal
   const matrixMap = useMemo(() => {
@@ -294,69 +371,27 @@ export default function KrispiesRenewalsPage() {
             ))}
           </div>
 
-          {/* Per-store renewals matrix */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-              <div style={{ fontSize: '17px', fontWeight: '800', color: '#1a1a2e' }}>
-                🏪 Store Licences &amp; Services
-              </div>
-              <div style={{ fontSize: '12px', color: '#9ca3af' }}>Tap any cell to update its date or mark done</div>
-            </div>
-            <div style={{ ...cardStyle, padding: 0, overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: `${200 + matrixStores.length * 110}px` }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #f0f0f5' }}>
-                    <th style={{ textAlign: 'left', padding: '14px 16px', fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', position: 'sticky', left: 0, background: 'white', minWidth: '190px' }}>
-                      Renewal
-                    </th>
-                    {matrixStores.map(s => (
-                      <th key={s.id} style={{ textAlign: 'center', padding: '14px 8px', minWidth: '104px', fontSize: '13px', fontWeight: '700', color: '#1a1a2e' }}>
-                        {s.name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {matrixRows.map((title, ri) => (
-                    <tr key={title} style={{ borderBottom: ri < matrixRows.length - 1 ? '1px solid #f5f5f7' : 'none' }}>
-                      <td style={{ padding: '10px 16px', position: 'sticky', left: 0, background: 'white' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '15px' }}>{TITLE_EMOJI[title] || '📋'}</span>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{title}</div>
-                            <div style={{ fontSize: '10px', color: '#c0c0d0', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                              {FREQ_LABELS[perStore.find(r => r.title === title)?.frequency] || ''}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      {matrixStores.map(s => {
-                        const r = matrixMap[`${title}|${s.id}`];
-                        if (!r) return <td key={s.id} style={{ textAlign: 'center', color: '#e8e8ed' }}>—</td>;
-                        const st = statusFor(r.due_date);
-                        return (
-                          <td key={s.id} style={{ textAlign: 'center', padding: '7px 8px' }}>
-                            <button
-                              onClick={() => openEdit(r)}
-                              title={`${title} · ${s.name} — ${statusLabel(r.due_date)} (${fmtDate(r.due_date)})`}
-                              style={{
-                                width: '92px', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit',
-                                border: `1.5px solid ${st.border}`, background: st.bg, padding: '6px 4px',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', margin: '0 auto',
-                              }}
-                            >
-                              <span style={{ fontSize: '11px', fontWeight: '800', color: st.color }}>{shortDays(r.due_date)}</span>
-                              <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600' }}>{fmtShort(r.due_date)}</span>
-                            </button>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          {/* Annual licences matrix */}
+          <RenewalMatrix
+            heading="🏛️ Store Licences (Annual)"
+            subtitle="Tap any cell to update its date or mark done"
+            rows={annualRows}
+            matrixStores={matrixStores}
+            matrixMap={matrixMap}
+            freqByTitle={freqByTitle}
+            onCellClick={openEdit}
+          />
+
+          {/* Monthly services matrix */}
+          <RenewalMatrix
+            heading="🔁 Monthly Services"
+            subtitle="Pest control & deep cleaning — every store, every month"
+            rows={monthlyRows}
+            matrixStores={matrixStores}
+            matrixMap={matrixMap}
+            freqByTitle={freqByTitle}
+            onCellClick={openEdit}
+          />
 
           {/* Business-wide (vehicle) items */}
           {businessWide.length > 0 && (

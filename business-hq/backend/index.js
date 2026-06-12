@@ -317,6 +317,9 @@ async function seedKrispies() {
     console.log('Cleared old business-wide renewals for per-store reseed');
   }
 
+  // Remove discontinued Shop & Establishment rows
+  await pool.query(`DELETE FROM krispies_renewals WHERE title = 'Shop & Establishment'`).catch(() => {});
+
   const { rows: renCount } = await pool.query('SELECT COUNT(*) as cnt FROM krispies_renewals');
   if (parseInt(renCount[0].cnt) === 0) {
     function daysFromNow(n) { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; }
@@ -329,7 +332,6 @@ async function seedKrispies() {
     const perStore = [
       ['FSSAI Licence',          'licence', 'annual',  -5],
       ['Trade Licence (GHMC)',   'licence', 'annual',  12],
-      ['Shop & Establishment',   'licence', 'annual',  70],
       ['Fire Safety NOC',        'licence', 'annual',   8],
       ['Labour Licence',         'licence', 'annual',  40],
       ['Food Handler Medical',   'health',  'annual',  55],
