@@ -34,7 +34,7 @@ router.get('/stores', async (req, res) => {
 router.get('/sales', async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT s.*, s.cash_sales, s.online_sales, st.name AS store_name, st.location, st.manager
+      SELECT s.*, s.cash_sales, s.online_sales, st.name AS store_name, st.location, st.manager, st.region
       FROM krispies_sales s
       JOIN krispies_stores st ON s.store_id = st.id
       ORDER BY s.sale_date DESC, st.name

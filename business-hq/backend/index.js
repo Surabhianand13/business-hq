@@ -211,9 +211,11 @@ async function initDB() {
         name TEXT NOT NULL UNIQUE,
         location TEXT,
         manager TEXT,
+        region TEXT DEFAULT 'TG',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    await pool.query(`ALTER TABLE krispies_stores ADD COLUMN IF NOT EXISTS region TEXT DEFAULT 'TG'`).catch(() => {});
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS krispies_sales (
@@ -326,6 +328,12 @@ async function seedKrispies() {
 
   // Rename NSL store -> Nacharam (NSL was a placeholder; Nacharam is a real outlet)
   await pool.query(`UPDATE krispies_stores SET name='Nacharam', location='Nacharam, Hyderabad' WHERE name='NSL'`).catch(() => {});
+
+  // Assign regions: Hyderabad outlets = TG, Anakapalle outlets = AP
+  await pool.query(`UPDATE krispies_stores SET region='TG' WHERE name IN ('Tukkuguda','Suchitra','Boduppal','Lalbazar','Ramantapur','Nacharam')`).catch(() => {});
+  // Add the two Anakapalle (AP) stores if missing — names must match the sheet group headers exactly
+  await pool.query(`INSERT INTO krispies_stores (name, location, manager, region) VALUES ('Surabhi Cake House', 'Anakapalle, AP', 'Manager', 'AP') ON CONFLICT (name) DO UPDATE SET region='AP'`).catch(() => {});
+  await pool.query(`INSERT INTO krispies_stores (name, location, manager, region) VALUES ('Suruchi', 'Anakapalle, AP', 'Manager', 'AP') ON CONFLICT (name) DO UPDATE SET region='AP'`).catch(() => {});
 
   const { rows: renCount } = await pool.query('SELECT COUNT(*) as cnt FROM krispies_renewals');
   if (parseInt(renCount[0].cnt) === 0) {
