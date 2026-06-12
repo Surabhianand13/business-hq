@@ -168,11 +168,20 @@ function AddSalesModal({ stores, onClose, onSaved }) {
   );
 }
 
+function fmtDateShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
 export default function KrispiesSalesPage() {
+  const { addToast } = useApp();
   const [sales, setSales] = useState([]);
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   async function load() {
     try {
@@ -190,6 +199,21 @@ export default function KrispiesSalesPage() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      const res = await api.syncKrispiesSheet();
+      const storeCount = (res.stores || []).length;
+      const range = res.dateRange ? ` (${fmtDateShort(res.dateRange.from)} – ${fmtDateShort(res.dateRange.to)})` : '';
+      addToast(`Synced ${res.synced} rows across ${storeCount} store${storeCount === 1 ? '' : 's'}${range}`, 'success');
+      await load();
+    } catch (e) {
+      addToast(e.message || 'Failed to sync from sheet', 'error');
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   const today = todayStr();
   const yesterday = dateNDaysAgo(1);
@@ -269,11 +293,19 @@ export default function KrispiesSalesPage() {
           </h1>
           <p style={{ fontSize: '14px', color: '#9ca3af', margin: '4px 0 0' }}>Daily sales across all stores</p>
         </div>
-        <button onClick={() => setShowModal(true)} style={{
-          background: `linear-gradient(135deg, ${ORANGE}, ${ORANGE_DARK})`, color: 'white', border: 'none',
-          borderRadius: '12px', padding: '11px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(245,158,11,0.35)', fontFamily: 'inherit', whiteSpace: 'nowrap',
-        }}>+ Add Today's Sales</button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button onClick={handleSync} disabled={syncing} style={{
+            background: 'white', color: ORANGE_DARK, border: `1px solid ${ORANGE}66`,
+            borderRadius: '12px', padding: '11px 18px', fontSize: '14px', fontWeight: '700',
+            cursor: syncing ? 'default' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+            opacity: syncing ? 0.7 : 1,
+          }}>{syncing ? 'Syncing…' : '🔄 Sync from Sheet'}</button>
+          <button onClick={() => setShowModal(true)} style={{
+            background: `linear-gradient(135deg, ${ORANGE}, ${ORANGE_DARK})`, color: 'white', border: 'none',
+            borderRadius: '12px', padding: '11px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(245,158,11,0.35)', fontFamily: 'inherit', whiteSpace: 'nowrap',
+          }}>+ Add Today's Sales</button>
+        </div>
       </div>
 
       {/* KPI cards */}

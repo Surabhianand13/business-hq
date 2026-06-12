@@ -68,6 +68,8 @@ export const api = {
   getKrispiesStores: () => request('GET', '/api/krispies/stores'),
   getKrispiesSales: () => request('GET', '/api/krispies/sales'),
   saveKrispiesSale: (data) => request('POST', '/api/krispies/sales', data),
+  syncKrispiesSheet: () => request('POST', '/api/krispies/sync-sheet'),
+  previewKrispiesSheet: () => request('POST', '/api/krispies/sync-sheet?preview=1'),
   getComplianceItems: () => request('GET', '/api/krispies/items'),
   getCompliance: (date) => request('GET', `/api/krispies/compliance?date=${date}`),
   saveCompliance: (data) => request('POST', '/api/krispies/compliance', data),

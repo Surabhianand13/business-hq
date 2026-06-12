@@ -229,6 +229,10 @@ async function initDB() {
       )
     `);
 
+    // Migrations: cash/online split columns for Google Sheets sync
+    await pool.query(`ALTER TABLE krispies_sales ADD COLUMN IF NOT EXISTS cash_sales REAL DEFAULT 0`).catch(() => {});
+    await pool.query(`ALTER TABLE krispies_sales ADD COLUMN IF NOT EXISTS online_sales REAL DEFAULT 0`).catch(() => {});
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS store_compliance (
         id SERIAL PRIMARY KEY,
