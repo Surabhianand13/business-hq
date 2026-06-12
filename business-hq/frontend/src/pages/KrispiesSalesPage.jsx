@@ -102,22 +102,31 @@ function MiniBars({ values, color }) {
   );
 }
 
-// Stacked daily bars: cash (orange) at bottom, online (blue) on top
-function StackedBars({ cash, online, height = 44 }) {
-  const totals = cash.map((c, i) => c + online[i]);
+// Stacked daily bars: cash (orange) at bottom, online (blue) on top.
+// `total` is the authoritative daily amount; if a day has no cash/online split,
+// it renders as a single neutral bar sized by total so total-only stores still show a trend.
+function StackedBars({ cash, online, total, hasSplit, height = 52 }) {
+  const totals = total || cash.map((c, i) => c + online[i]);
   const max = Math.max(...totals, 1);
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: `${height}px` }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: `${height}px` }}>
       {totals.map((tot, i) => {
-        const h = Math.max((tot / max) * height, tot > 0 ? 3 : 1);
-        const cashH = tot > 0 ? (cash[i] / tot) * h : 0;
-        const onlineH = h - cashH;
+        const h = Math.max((tot / max) * height, tot > 0 ? 4 : 2);
+        const split = (cash[i] || 0) + (online[i] || 0);
+        const cashH = split > 0 ? (cash[i] / split) * h : 0;
+        const onlineH = split > 0 ? h - cashH : 0;
         const isLast = i === totals.length - 1;
         return (
-          <div key={i} title={`${fmt(tot)} (Cash ${fmt(cash[i])} · Online ${fmt(online[i])})`}
-            style={{ width: '7px', height: `${h}px`, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', borderRadius: '2px', overflow: 'hidden', opacity: isLast ? 1 : 0.85 }}>
-            <div style={{ height: `${onlineH}px`, background: BLUE, borderRadius: '2px 2px 0 0' }} />
-            <div style={{ height: `${cashH}px`, background: ORANGE }} />
+          <div key={i} title={`${fmt(tot)}${split > 0 ? ` (Cash ${fmt(cash[i])} · Online ${fmt(online[i])})` : ''}`}
+            style={{ flex: 1, minWidth: '6px', height: `${h}px`, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', borderRadius: '3px', overflow: 'hidden', opacity: tot > 0 ? (isLast ? 1 : 0.9) : 0.25 }}>
+            {split > 0 ? (
+              <>
+                <div style={{ height: `${onlineH}px`, background: BLUE, borderRadius: '3px 3px 0 0' }} />
+                <div style={{ height: `${cashH}px`, background: ORANGE }} />
+              </>
+            ) : (
+              <div style={{ height: '100%', background: tot > 0 ? `linear-gradient(180deg, ${ORANGE}, ${ORANGE}cc)` : '#e8e8ed', borderRadius: '3px' }} />
+            )}
           </div>
         );
       })}
@@ -357,7 +366,7 @@ export default function KrispiesSalesPage() {
     for (const s of scopeStores) {
       map[s.id] = {
         store: s, revenue: 0, cash: 0, online: 0, prevRevenue: 0,
-        dayCash: {}, dayOnline: {}, // iso -> value for spark window
+        dayCash: {}, dayOnline: {}, dayTotal: {}, // iso -> value for spark window
       };
     }
     for (const r of activeSales) {
@@ -371,6 +380,7 @@ export default function KrispiesSalesPage() {
         const k = toISO(r.d);
         m.dayCash[k] = (m.dayCash[k] || 0) + r.cash_sales;
         m.dayOnline[k] = (m.dayOnline[k] || 0) + r.online_sales;
+        m.dayTotal[k] = (m.dayTotal[k] || 0) + r.amount;
       }
     }
     const sparkKeys = [];
@@ -379,7 +389,9 @@ export default function KrispiesSalesPage() {
     const rows = Object.values(map).map(m => {
       const cashSeries = sparkKeys.map(k => m.dayCash[k] || 0);
       const onlineSeries = sparkKeys.map(k => m.dayOnline[k] || 0);
-      const totalSeries = cashSeries.map((c, i) => c + onlineSeries[i]);
+      // Use the real daily total (amount). For total-only stores cash/online are 0 but total exists.
+      const totalSeries = sparkKeys.map(k => m.dayTotal[k] || 0);
+      const hasSplit = m.cash + m.online > 0;
       // change vs previous equal period
       const changePct = m.prevRevenue > 0 ? ((m.revenue - m.prevRevenue) / m.prevRevenue) * 100 : null;
       // latest day vs trailing-7 avg (anomaly detection)
@@ -394,10 +406,10 @@ export default function KrispiesSalesPage() {
       if (trailingAvg > 0 && latest > 0 && latest < 0.6 * trailingAvg) {
         alerts.push({ type: 'sales', text: `Sales ▼ ${Math.round((1 - latest / trailingAvg) * 100)}% vs avg` });
       }
-      if (trailingCashAvg > 0 && latestCash >= 0 && latestCash < 0.5 * trailingCashAvg) {
+      if (hasSplit && trailingCashAvg > 0 && latestCash >= 0 && latestCash < 0.5 * trailingCashAvg) {
         alerts.push({ type: 'cash', text: `Cash drop ▼ ${Math.round((1 - latestCash / trailingCashAvg) * 100)}%` });
       }
-      return { ...m, cashSeries, onlineSeries, totalSeries, changePct, alerts };
+      return { ...m, cashSeries, onlineSeries, totalSeries, hasSplit, changePct, alerts };
     }).sort((a, b) => b.revenue - a.revenue);
 
     const scopeTotal = rows.reduce((s, r) => s + r.revenue, 0);
@@ -546,9 +558,11 @@ export default function KrispiesSalesPage() {
                           boxShadow: isPeak ? `0 4px 12px ${acc.c1}55` : 'none',
                           cursor: 'default',
                         }} />
-                        <span style={{ fontSize: '10px', fontWeight: isPeak ? '800' : '500', color: isPeak ? acc.c2 : '#9ca3af', textAlign: 'center', lineHeight: 1.2 }}>
-                          {d.date.getDate()}
-                          {showMonth && <div style={{ fontSize: '8px', color: '#c0c0d0', fontWeight: '700' }}>{monthLabel}</div>}
+                        <span style={{ fontSize: '10px', fontWeight: isPeak ? '800' : '500', color: isPeak ? acc.c2 : '#9ca3af', textAlign: 'center', lineHeight: 1.25 }}>
+                          <div style={{ fontSize: '9px', color: '#c0c0d0', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.2px' }}>
+                            {d.date.toLocaleDateString('en-IN', { weekday: 'short' })}
+                          </div>
+                          {d.date.getDate()}{showMonth && ` ${monthLabel}`}
                         </span>
                       </div>
                     );
@@ -629,19 +643,28 @@ export default function KrispiesSalesPage() {
                     </div>
 
                     {/* Cash vs Online stacked bar */}
-                    <div>
-                      <div style={{ display: 'flex', height: '8px', borderRadius: '5px', overflow: 'hidden', background: '#f0f0f5' }}>
-                        <div style={{ width: `${cashPct}%`, background: ORANGE }} />
-                        <div style={{ width: `${onlinePct}%`, background: BLUE }} />
+                    {r.hasSplit ? (
+                      <div>
+                        <div style={{ display: 'flex', height: '8px', borderRadius: '5px', overflow: 'hidden', background: '#f0f0f5' }}>
+                          <div style={{ width: `${cashPct}%`, background: ORANGE }} />
+                          <div style={{ width: `${onlinePct}%`, background: BLUE }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px', fontSize: '11px', fontWeight: '600' }}>
+                          <span style={{ color: ORANGE_DARK }}>Cash {cashPct.toFixed(0)}% · {fmtShort(r.cash)}</span>
+                          <span style={{ color: BLUE_DARK }}>Online {onlinePct.toFixed(0)}% · {fmtShort(r.online)}</span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px', fontSize: '11px', fontWeight: '600' }}>
-                        <span style={{ color: ORANGE_DARK }}>Cash {cashPct.toFixed(0)}% · {fmtShort(r.cash)}</span>
-                        <span style={{ color: BLUE_DARK }}>Online {onlinePct.toFixed(0)}% · {fmtShort(r.online)}</span>
+                    ) : (
+                      <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600', background: '#f9f9fb', borderRadius: '8px', padding: '6px 10px' }}>
+                        ℹ️ Total only — cash/online split not in sheet
                       </div>
-                    </div>
+                    )}
 
-                    {/* 14-day stacked daily bars */}
-                    <StackedBars cash={r.cashSeries} online={r.onlineSeries} />
+                    {/* 14-day daily trend */}
+                    <div>
+                      <StackedBars cash={r.cashSeries} online={r.onlineSeries} total={r.totalSeries} hasSplit={r.hasSplit} />
+                      <div style={{ fontSize: '10px', color: '#c0c0d0', fontWeight: '600', marginTop: '4px' }}>Last 14 days · daily sales</div>
+                    </div>
 
                     {/* Anomaly alerts */}
                     {r.alerts.length > 0 && (
