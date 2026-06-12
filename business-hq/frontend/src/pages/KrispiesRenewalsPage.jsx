@@ -67,6 +67,38 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function fmtShort(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function shortDays(due) {
+  if (!due) return '—';
+  const days = daysUntil(due);
+  if (days < 0) return `${Math.abs(days)}d over`;
+  if (days === 0) return 'today';
+  return `${days}d`;
+}
+
+const TITLE_EMOJI = {
+  'FSSAI Licence': '🍴',
+  'Trade Licence (GHMC)': '🏛️',
+  'Shop & Establishment': '🏬',
+  'Fire Safety NOC': '🔥',
+  'Labour Licence': '👷',
+  'Food Handler Medical': '🩺',
+  'Weighing Scale Stamping': '⚖️',
+  'Pest Control Service': '🐜',
+  'Deep Cleaning': '🧼',
+};
+
+// Preferred row order for the matrix
+const ROW_ORDER = [
+  'FSSAI Licence', 'Trade Licence (GHMC)', 'Shop & Establishment', 'Fire Safety NOC',
+  'Labour Licence', 'Food Handler Medical', 'Weighing Scale Stamping',
+  'Pest Control Service', 'Deep Cleaning',
+];
+
 export default function KrispiesRenewalsPage() {
   const { addToast } = useApp();
   const [renewals, setRenewals] = useState([]);
@@ -89,7 +121,8 @@ export default function KrispiesRenewalsPage() {
 
   useEffect(() => { load(); }, []);
 
-  const licences = useMemo(
+  // Business-wide (vehicle) items — no store
+  const businessWide = useMemo(
     () => renewals.filter(r => !r.store_id).sort((a, b) => {
       if (!a.due_date) return 1;
       if (!b.due_date) return -1;
@@ -98,17 +131,30 @@ export default function KrispiesRenewalsPage() {
     [renewals]
   );
 
-  const services = useMemo(() => renewals.filter(r => r.store_id), [renewals]);
+  // Per-store items for the matrix
+  const perStore = useMemo(() => renewals.filter(r => r.store_id), [renewals]);
 
-  const servicesByStore = useMemo(() => {
-    const map = new Map();
-    for (const s of stores) map.set(s.id, { store: s, items: [] });
-    for (const r of services) {
-      if (!map.has(r.store_id)) map.set(r.store_id, { store: { id: r.store_id, name: r.store_name }, items: [] });
-      map.get(r.store_id).items.push(r);
-    }
-    return [...map.values()].filter(g => g.items.length > 0);
-  }, [services, stores]);
+  // Columns = stores that have per-store renewals
+  const matrixStores = useMemo(() => {
+    const ids = new Set(perStore.map(r => r.store_id));
+    return stores.filter(s => ids.has(s.id));
+  }, [perStore, stores]);
+
+  // Rows = unique renewal titles, in preferred order then any extras
+  const matrixRows = useMemo(() => {
+    const titles = [...new Set(perStore.map(r => r.title))];
+    return titles.sort((a, b) => {
+      const ia = ROW_ORDER.indexOf(a), ib = ROW_ORDER.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+  }, [perStore]);
+
+  // Lookup: `${title}|${store_id}` -> renewal
+  const matrixMap = useMemo(() => {
+    const m = {};
+    for (const r of perStore) m[`${r.title}|${r.store_id}`] = r;
+    return m;
+  }, [perStore]);
 
   const counts = useMemo(() => {
     const c = { overdue: 0, duesoon: 0, upcoming: 0, valid: 0 };
@@ -248,114 +294,108 @@ export default function KrispiesRenewalsPage() {
             ))}
           </div>
 
-          {/* Section A: Business Licences */}
-          <div style={{ marginBottom: '26px' }}>
-            <div style={{ fontSize: '17px', fontWeight: '800', color: '#1a1a2e', marginBottom: '12px' }}>
-              🏛️ Business Licences &amp; Annual Renewals
+          {/* Per-store renewals matrix */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ fontSize: '17px', fontWeight: '800', color: '#1a1a2e' }}>
+                🏪 Store Licences &amp; Services
+              </div>
+              <div style={{ fontSize: '12px', color: '#9ca3af' }}>Tap any cell to update its date or mark done</div>
             </div>
-            <div style={{ ...cardStyle, padding: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {licences.length === 0 && (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>No licences tracked yet.</div>
-              )}
-              {licences.map(r => {
-                const s = statusFor(r.due_date);
-                return (
-                  <div key={r.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap',
-                    padding: '14px 16px', borderRadius: '12px', background: '#fcfcfd',
-                    borderLeft: `4px solid ${s.color}`,
-                  }}>
-                    <div style={{ flex: '1 1 240px', minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a2e' }}>{r.title}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '5px' }}>
-                        <span style={{
-                          fontSize: '10px', fontWeight: '700', color: '#6b7280', background: '#f0f0f5',
-                          padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase', letterSpacing: '0.4px',
-                        }}>{FREQ_LABELS[r.frequency] || r.frequency}</span>
-                        {r.responsible && (
-                          <span style={{ fontSize: '12px', color: '#9ca3af' }}>👤 {r.responsible}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ minWidth: '120px' }}>
-                      <div style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Due Date</div>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#374151' }}>{fmtDate(r.due_date)}</div>
-                    </div>
-                    <span style={{
-                      fontSize: '12px', fontWeight: '700', color: s.color, background: s.bg,
-                      border: `1px solid ${s.border}`, padding: '5px 11px', borderRadius: '20px', whiteSpace: 'nowrap',
-                    }}>{statusLabel(r.due_date)}</span>
-                    <div style={{ display: 'flex', gap: '7px', marginLeft: 'auto' }}>
-                      <button onClick={() => markDone(r.id)} style={{
-                        background: '#ecfdf5', color: '#047857', border: '1px solid #10b98133',
-                        borderRadius: '9px', padding: '7px 12px', fontSize: '12px', fontWeight: '700',
-                        cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-                      }}>✓ Mark Done</button>
-                      <button onClick={() => openEdit(r)} title="Edit" style={{
-                        background: 'white', color: '#6b7280', border: '1px solid #e8e8ed',
-                        borderRadius: '9px', padding: '7px 11px', fontSize: '13px',
-                        cursor: 'pointer', fontFamily: 'inherit',
-                      }}>✏️</button>
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ ...cardStyle, padding: 0, overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: `${200 + matrixStores.length * 110}px` }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #f0f0f5' }}>
+                    <th style={{ textAlign: 'left', padding: '14px 16px', fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', position: 'sticky', left: 0, background: 'white', minWidth: '190px' }}>
+                      Renewal
+                    </th>
+                    {matrixStores.map(s => (
+                      <th key={s.id} style={{ textAlign: 'center', padding: '14px 8px', minWidth: '104px', fontSize: '13px', fontWeight: '700', color: '#1a1a2e' }}>
+                        {s.name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {matrixRows.map((title, ri) => (
+                    <tr key={title} style={{ borderBottom: ri < matrixRows.length - 1 ? '1px solid #f5f5f7' : 'none' }}>
+                      <td style={{ padding: '10px 16px', position: 'sticky', left: 0, background: 'white' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '15px' }}>{TITLE_EMOJI[title] || '📋'}</span>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{title}</div>
+                            <div style={{ fontSize: '10px', color: '#c0c0d0', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                              {FREQ_LABELS[perStore.find(r => r.title === title)?.frequency] || ''}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      {matrixStores.map(s => {
+                        const r = matrixMap[`${title}|${s.id}`];
+                        if (!r) return <td key={s.id} style={{ textAlign: 'center', color: '#e8e8ed' }}>—</td>;
+                        const st = statusFor(r.due_date);
+                        return (
+                          <td key={s.id} style={{ textAlign: 'center', padding: '7px 8px' }}>
+                            <button
+                              onClick={() => openEdit(r)}
+                              title={`${title} · ${s.name} — ${statusLabel(r.due_date)} (${fmtDate(r.due_date)})`}
+                              style={{
+                                width: '92px', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit',
+                                border: `1.5px solid ${st.border}`, background: st.bg, padding: '6px 4px',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', margin: '0 auto',
+                              }}
+                            >
+                              <span style={{ fontSize: '11px', fontWeight: '800', color: st.color }}>{shortDays(r.due_date)}</span>
+                              <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600' }}>{fmtShort(r.due_date)}</span>
+                            </button>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* Section B: Monthly Store Services */}
-          <div>
-            <div style={{ fontSize: '17px', fontWeight: '800', color: '#1a1a2e', marginBottom: '12px' }}>
-              🏪 Monthly Store Services
+          {/* Business-wide (vehicle) items */}
+          {businessWide.length > 0 && (
+            <div>
+              <div style={{ fontSize: '17px', fontWeight: '800', color: '#1a1a2e', marginBottom: '12px' }}>
+                🚚 Business-wide (Delivery Vehicle)
+              </div>
+              <div style={{ ...cardStyle, padding: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {businessWide.map(r => {
+                  const s = statusFor(r.due_date);
+                  return (
+                    <div key={r.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap',
+                      padding: '12px 16px', borderRadius: '12px', background: '#fcfcfd',
+                      borderLeft: `4px solid ${s.color}`,
+                    }}>
+                      <div style={{ flex: '1 1 200px', fontSize: '14px', fontWeight: '700', color: '#1a1a2e' }}>{r.title}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#374151', minWidth: '110px' }}>{fmtDate(r.due_date)}</div>
+                      <span style={{
+                        fontSize: '12px', fontWeight: '700', color: s.color, background: s.bg,
+                        border: `1px solid ${s.border}`, padding: '5px 11px', borderRadius: '20px', whiteSpace: 'nowrap',
+                      }}>{statusLabel(r.due_date)}</span>
+                      <div style={{ display: 'flex', gap: '7px', marginLeft: 'auto' }}>
+                        <button onClick={() => markDone(r.id)} style={{
+                          background: '#ecfdf5', color: '#047857', border: '1px solid #10b98133',
+                          borderRadius: '9px', padding: '7px 12px', fontSize: '12px', fontWeight: '700',
+                          cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                        }}>✓ Mark Done</button>
+                        <button onClick={() => openEdit(r)} title="Edit" style={{
+                          background: 'white', color: '#6b7280', border: '1px solid #e8e8ed',
+                          borderRadius: '9px', padding: '7px 11px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit',
+                        }}>✏️</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
-              {servicesByStore.length === 0 && (
-                <div style={{ ...cardStyle, padding: '24px', textAlign: 'center', color: '#9ca3af', fontSize: '13px', gridColumn: '1 / -1' }}>
-                  No store services tracked yet.
-                </div>
-              )}
-              {servicesByStore.map(({ store, items }) => (
-                <div key={store.id} style={{ ...cardStyle, padding: '16px 18px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '30px', height: '30px', borderRadius: '8px', background: '#fffbeb',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px',
-                    }}>🏪</div>
-                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#1a1a2e' }}>{store.name}</div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {items.map(r => {
-                      const s = statusFor(r.due_date);
-                      return (
-                        <div key={r.id} style={{
-                          padding: '11px 12px', borderRadius: '10px', background: '#fcfcfd',
-                          borderLeft: `4px solid ${s.color}`,
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a2e' }}>
-                              {r.title === 'Pest Control Service' ? '🐜' : '🧼'} {r.title}
-                            </div>
-                            <button onClick={() => markDone(r.id)} style={{
-                              background: '#ecfdf5', color: '#047857', border: '1px solid #10b98133',
-                              borderRadius: '8px', padding: '4px 10px', fontSize: '11px', fontWeight: '700',
-                              cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-                            }}>✓ Done</button>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '7px', gap: '8px' }}>
-                            <span style={{ fontSize: '12px', color: '#9ca3af' }}>{fmtDate(r.due_date)}</span>
-                            <span style={{
-                              fontSize: '11px', fontWeight: '700', color: s.color, background: s.bg,
-                              border: `1px solid ${s.border}`, padding: '3px 9px', borderRadius: '20px', whiteSpace: 'nowrap',
-                            }}>{statusLabel(r.due_date)}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
         </>
       )}
 
@@ -366,13 +406,14 @@ export default function KrispiesRenewalsPage() {
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
           onDelete={handleDelete}
+          onMarkDone={async () => { if (editing) { await markDone(editing.id); setModalOpen(false); } }}
         />
       )}
     </div>
   );
 }
 
-function RenewalModal({ editing, stores, onClose, onSave, onDelete }) {
+function RenewalModal({ editing, stores, onClose, onSave, onDelete, onMarkDone }) {
   const [form, setForm] = useState({
     title: editing?.title || '',
     category: editing?.category || 'licence',
@@ -474,6 +515,13 @@ function RenewalModal({ editing, stores, onClose, onSave, onDelete }) {
             }}>Delete</button>
           ) : <span />}
           <div style={{ display: 'flex', gap: '10px' }}>
+            {editing && (
+              <button type="button" onClick={onMarkDone} style={{
+                background: '#ecfdf5', color: '#047857', border: '1px solid #10b98133',
+                borderRadius: '10px', padding: '9px 14px', fontSize: '13px', fontWeight: '700',
+                cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+              }}>✓ Mark Done</button>
+            )}
             <button type="button" onClick={onClose} style={{
               background: 'white', color: '#6b7280', border: '1px solid #e8e8ed',
               borderRadius: '10px', padding: '9px 16px', fontSize: '13px', fontWeight: '700',

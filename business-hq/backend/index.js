@@ -307,33 +307,65 @@ async function seedKrispies() {
     console.log('Seeded Krispies sales');
   }
 
+  // Migration: old model stored licences as business-wide (store_id NULL).
+  // New model = per-store matrix. If any NULL-store licence exists, wipe & reseed.
+  const { rows: oldModel } = await pool.query(
+    `SELECT COUNT(*) as cnt FROM krispies_renewals WHERE store_id IS NULL AND category='licence'`
+  );
+  if (parseInt(oldModel[0].cnt) > 0) {
+    await pool.query('DELETE FROM krispies_renewals');
+    console.log('Cleared old business-wide renewals for per-store reseed');
+  }
+
   const { rows: renCount } = await pool.query('SELECT COUNT(*) as cnt FROM krispies_renewals');
   if (parseInt(renCount[0].cnt) === 0) {
     function daysFromNow(n) { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; }
-    const licences = [
-      ['FSSAI Licence Renewal', 'Surabhi', daysFromNow(-5)],
-      ['Trade Licence (GHMC) Renewal', 'Surabhi', daysFromNow(12)],
-      ['Labour Licence Renewal', 'Surabhi', daysFromNow(40)],
-      ['Shop & Establishment Renewal', 'Surabhi', daysFromNow(70)],
-      ['Road Tax - Delivery Vehicle', 'Surabhi', daysFromNow(20)],
-      ['Vehicle Insurance', 'Surabhi', daysFromNow(110)],
-      ['Fire Safety NOC', 'Surabhi', daysFromNow(8)],
-      ['Weighing Scale Stamping', 'Surabhi', daysFromNow(150)],
-      ['Food Handler Medical Checkup', 'Surabhi', daysFromNow(55)],
-    ];
-    for (const [title, responsible, due] of licences) {
-      await pool.query(
-        'INSERT INTO krispies_renewals (title, category, frequency, store_id, due_date, responsible) VALUES ($1,$2,$3,NULL,$4,$5)',
-        [title, 'licence', 'annual', due, responsible]
-      );
-    }
-    const { rows: stores } = await pool.query('SELECT id FROM krispies_stores');
     const monthStr = (day) => { const d = new Date(); d.setDate(day); return d.toISOString().split('T')[0]; };
-    for (const st of stores) {
-      await pool.query('INSERT INTO krispies_renewals (title, category, frequency, store_id, due_date) VALUES ($1,$2,$3,$4,$5)', ['Pest Control Service', 'service', 'monthly', st.id, monthStr(25)]);
-      await pool.query('INSERT INTO krispies_renewals (title, category, frequency, store_id, due_date) VALUES ($1,$2,$3,$4,$5)', ['Deep Cleaning', 'service', 'monthly', st.id, monthStr(28)]);
+
+    const { rows: stores } = await pool.query('SELECT id FROM krispies_stores ORDER BY id');
+
+    // Per-store renewal templates: [title, category, frequency, baseDayOffset]
+    // Each store's date is staggered slightly so they don't all fall on the same day.
+    const perStore = [
+      ['FSSAI Licence',          'licence', 'annual',  -5],
+      ['Trade Licence (GHMC)',   'licence', 'annual',  12],
+      ['Shop & Establishment',   'licence', 'annual',  70],
+      ['Fire Safety NOC',        'licence', 'annual',   8],
+      ['Labour Licence',         'licence', 'annual',  40],
+      ['Food Handler Medical',   'health',  'annual',  55],
+      ['Weighing Scale Stamping','licence', 'annual', 150],
+      ['Pest Control Service',   'service', 'monthly',  null], // monthly -> 25th
+      ['Deep Cleaning',          'service', 'monthly',  null], // monthly -> 28th
+    ];
+
+    for (let si = 0; si < stores.length; si++) {
+      const st = stores[si];
+      for (const [title, category, frequency, baseOffset] of perStore) {
+        let due;
+        if (frequency === 'monthly') {
+          due = monthStr(title === 'Pest Control Service' ? 25 : 28);
+        } else {
+          // stagger each store by si*4 days so dates differ across stores
+          due = daysFromNow(baseOffset + si * 4);
+        }
+        await pool.query(
+          'INSERT INTO krispies_renewals (title, category, frequency, store_id, due_date, responsible) VALUES ($1,$2,$3,$4,$5,$6)',
+          [title, category, frequency, st.id, due, 'Surabhi']
+        );
+      }
     }
-    console.log('Seeded Krispies renewals');
+
+    // Business-wide items (one delivery vehicle) — store_id NULL, category 'vehicle'
+    await pool.query(
+      'INSERT INTO krispies_renewals (title, category, frequency, store_id, due_date, responsible) VALUES ($1,$2,$3,NULL,$4,$5)',
+      ['Road Tax - Delivery Vehicle', 'vehicle', 'annual', daysFromNow(20), 'Surabhi']
+    );
+    await pool.query(
+      'INSERT INTO krispies_renewals (title, category, frequency, store_id, due_date, responsible) VALUES ($1,$2,$3,NULL,$4,$5)',
+      ['Vehicle Insurance', 'vehicle', 'annual', daysFromNow(110), 'Surabhi']
+    );
+
+    console.log('Seeded per-store Krispies renewals');
   }
 }
 
