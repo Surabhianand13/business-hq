@@ -186,16 +186,18 @@ export default function KrispiesSalesPage() {
     region: r.region || 'TG',
   })).filter(r => r.d), [sales]);
 
+  // Latest date that actually has sales (ignore stray empty/future rows)
   const latestDate = useMemo(() => {
-    if (!normSales.length) return null;
-    return normSales.reduce((m, r) => (r.d > m ? r.d : m), normSales[0].d);
+    const withData = normSales.filter(r => r.amount > 0);
+    if (!withData.length) return normSales.length ? normSales[0].d : null;
+    return withData.reduce((m, r) => (r.d > m ? r.d : m), withData[0].d);
   }, [normSales]);
 
-  // Default date range = last 30 days ending at latest data date
+  // Default date range = last 14 days ending at the latest day with data
   useEffect(() => {
     if (latestDate && !toDate && !fromDate) {
       setToDate(toISO(latestDate));
-      setFromDate(toISO(addDays(latestDate, -29)));
+      setFromDate(toISO(addDays(latestDate, -13)));
     }
   }, [latestDate]); // eslint-disable-line
 
@@ -502,7 +504,10 @@ export default function KrispiesSalesPage() {
           {/* SECTION 2 — Daily sales (date range) */}
           <div style={{ ...cardStyle, marginBottom: '22px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '18px' }}>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#1a1a2e' }}>📈 Daily Sales · {view}</div>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: '#1a1a2e' }}>📈 Daily Sales · {view}</div>
+                <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Total sales per day (cash + online) · all {view === 'Org' ? 'stores' : view + ' stores'}</div>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#9ca3af' }}>From</label>
                 <input type="date" value={fromDate} onChange={e => onFromChange(e.target.value)} style={inputStyle} />
@@ -516,26 +521,41 @@ export default function KrispiesSalesPage() {
               <div style={{ padding: '30px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>No data in selected range.</div>
             ) : (
               <>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '170px', overflowX: 'auto', paddingBottom: '4px' }}>
-                  {rangeData.days.map((d) => {
+                {(() => {
+                  const showValues = rangeData.days.length <= 20;
+                  return (
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '200px', overflowX: 'auto', paddingBottom: '4px' }}>
+                  {rangeData.days.map((d, i) => {
                     const isPeak = rangeData.best && d.iso === rangeData.best.iso && d.total > 0;
-                    const h = Math.max((d.total / (rangeData.peak || 1)) * 150, d.total > 0 ? 4 : 2);
+                    const h = Math.max((d.total / (rangeData.peak || 1)) * 140, d.total > 0 ? 4 : 2);
+                    const prev = i > 0 ? rangeData.days[i - 1].date : null;
+                    const showMonth = !prev || prev.getMonth() !== d.date.getMonth();
+                    const monthLabel = d.date.toLocaleDateString('en-IN', { month: 'short' });
                     return (
-                      <div key={d.iso} style={{ flex: '1 0 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', minWidth: '14px' }}>
+                      <div key={d.iso} style={{ flex: '1 0 18px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '18px' }}>
+                        {/* value label */}
+                        {showValues && d.total > 0 && (
+                          <span style={{ fontSize: '9px', fontWeight: '700', color: isPeak ? acc.c2 : '#9ca3af', whiteSpace: 'nowrap' }}>
+                            {fmtShort(d.total)}
+                          </span>
+                        )}
                         <div title={`${fmtDateShort(d.date)}: ${fmt(d.total)}`} style={{
-                          width: '100%', maxWidth: '30px', height: `${h}px`, borderRadius: '5px 5px 2px 2px',
+                          width: '100%', maxWidth: '34px', height: `${h}px`, borderRadius: '5px 5px 2px 2px',
                           background: isPeak ? `linear-gradient(180deg, ${acc.c2}, ${acc.c1})` : accGrad,
-                          opacity: isPeak ? 1 : 0.78,
+                          opacity: d.total > 0 ? (isPeak ? 1 : 0.82) : 0.3,
                           boxShadow: isPeak ? `0 4px 12px ${acc.c1}55` : 'none',
                           cursor: 'default',
                         }} />
-                        <span style={{ fontSize: '10px', fontWeight: isPeak ? '800' : '500', color: isPeak ? acc.c2 : '#bbb' }}>
+                        <span style={{ fontSize: '10px', fontWeight: isPeak ? '800' : '500', color: isPeak ? acc.c2 : '#9ca3af', textAlign: 'center', lineHeight: 1.2 }}>
                           {d.date.getDate()}
+                          {showMonth && <div style={{ fontSize: '8px', color: '#c0c0d0', fontWeight: '700' }}>{monthLabel}</div>}
                         </span>
                       </div>
                     );
                   })}
                 </div>
+                  );
+                })()}
                 <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '18px', borderTop: '1px solid #f5f5f7', paddingTop: '16px' }}>
                   <MiniStat label="TOTAL" value={fmt(rangeData.total)} />
                   <MiniStat label="DAILY AVG" value={fmt(rangeData.avg)} />
