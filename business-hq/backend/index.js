@@ -208,6 +208,21 @@ async function initDB() {
       }
     } catch (e) { console.error('Email migration error:', e.message); }
 
+    // Grant all team members admin (full access to all dashboards) + add Sachin
+    try {
+      const adminPass = await bcrypt.hash('solvvai123', 10);
+      await pool.query(
+        `INSERT INTO users (name, email, password_hash, role, avatar_color)
+         VALUES ('Sachin', 'sachin@solvvai.com', $1, 'admin', '#0ea5e9')
+         ON CONFLICT (email) DO UPDATE SET role='admin'`,
+        [adminPass]
+      );
+      await pool.query(
+        `UPDATE users SET role='admin' WHERE email IN ('surabhi@solvvai.com','shilpa@solvvai.com','tejas@solvvai.com','ritesh@solvvai.com','sneha@solvvai.com','sachin@solvvai.com')`
+      );
+      console.log('Granted admin access to all team members');
+    } catch (e) { console.error('Admin grant error:', e.message); }
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS krispies_stores (
         id SERIAL PRIMARY KEY,
@@ -404,10 +419,11 @@ async function seedData() {
   // Users
   const usersData = [
     { name: 'Surabhi', email: 'surabhi@solvvai.com', role: 'admin', avatar_color: '#6c63ff' },
-    { name: 'Shilpa', email: 'shilpa@solvvai.com', role: 'member', avatar_color: '#f59e0b' },
-    { name: 'Tejas', email: 'tejas@solvvai.com', role: 'member', avatar_color: '#10b981' },
-    { name: 'Ritesh', email: 'ritesh@solvvai.com', role: 'member', avatar_color: '#3b82f6' },
-    { name: 'Sneha', email: 'sneha@solvvai.com', role: 'member', avatar_color: '#ec4899' }
+    { name: 'Sachin', email: 'sachin@solvvai.com', role: 'admin', avatar_color: '#0ea5e9' },
+    { name: 'Shilpa', email: 'shilpa@solvvai.com', role: 'admin', avatar_color: '#f59e0b' },
+    { name: 'Tejas', email: 'tejas@solvvai.com', role: 'admin', avatar_color: '#10b981' },
+    { name: 'Ritesh', email: 'ritesh@solvvai.com', role: 'admin', avatar_color: '#3b82f6' },
+    { name: 'Sneha', email: 'sneha@solvvai.com', role: 'admin', avatar_color: '#ec4899' }
   ];
 
   const userIds = {};

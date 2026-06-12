@@ -11,6 +11,7 @@ export default function LoginPage() {
 
   const teamMembers = [
     { name: 'Surabhi', email: 'surabhi@solvvai.com', role: 'Admin', color: '#6c63ff' },
+    { name: 'Sachin', email: 'sachin@solvvai.com', role: 'Admin', color: '#0ea5e9' },
     { name: 'Shilpa', email: 'shilpa@solvvai.com', role: 'Krispies', color: '#f97316' },
     { name: 'Tejas', email: 'tejas@solvvai.com', role: 'Content', color: '#10b981' },
     { name: 'Ritesh', email: 'ritesh@solvvai.com', role: 'Solvv AI', color: '#3b82f6' },
