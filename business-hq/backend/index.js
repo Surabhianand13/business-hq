@@ -280,7 +280,7 @@ async function seedKrispies() {
       ['Boduppal', 'Boduppal, Hyderabad', 'Venkat'],
       ['Lalbazar', 'Lalbazar, Secunderabad', 'Anil'],
       ['Ramantapur', 'Ramantapur, Hyderabad', 'Priya'],
-      ['NSL', 'NSL Centrum Mall', 'Kiran'],
+      ['Nacharam', 'Nacharam, Hyderabad', 'Kiran'],
     ];
     for (const [name, location, manager] of stores) {
       await pool.query('INSERT INTO krispies_stores (name, location, manager) VALUES ($1,$2,$3)', [name, location, manager]);
@@ -319,6 +319,9 @@ async function seedKrispies() {
 
   // Remove discontinued Shop & Establishment rows
   await pool.query(`DELETE FROM krispies_renewals WHERE title = 'Shop & Establishment'`).catch(() => {});
+
+  // Rename NSL store -> Nacharam (NSL was a placeholder; Nacharam is a real outlet)
+  await pool.query(`UPDATE krispies_stores SET name='Nacharam', location='Nacharam, Hyderabad' WHERE name='NSL'`).catch(() => {});
 
   const { rows: renCount } = await pool.query('SELECT COUNT(*) as cnt FROM krispies_renewals');
   if (parseInt(renCount[0].cnt) === 0) {
