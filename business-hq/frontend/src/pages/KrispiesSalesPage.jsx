@@ -102,6 +102,29 @@ function MiniBars({ values, color }) {
   );
 }
 
+// Stacked daily bars: cash (orange) at bottom, online (blue) on top
+function StackedBars({ cash, online, height = 44 }) {
+  const totals = cash.map((c, i) => c + online[i]);
+  const max = Math.max(...totals, 1);
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: `${height}px` }}>
+      {totals.map((tot, i) => {
+        const h = Math.max((tot / max) * height, tot > 0 ? 3 : 1);
+        const cashH = tot > 0 ? (cash[i] / tot) * h : 0;
+        const onlineH = h - cashH;
+        const isLast = i === totals.length - 1;
+        return (
+          <div key={i} title={`${fmt(tot)} (Cash ${fmt(cash[i])} · Online ${fmt(online[i])})`}
+            style={{ width: '7px', height: `${h}px`, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', borderRadius: '2px', overflow: 'hidden', opacity: isLast ? 1 : 0.85 }}>
+            <div style={{ height: `${onlineH}px`, background: BLUE, borderRadius: '2px 2px 0 0' }} />
+            <div style={{ height: `${cashH}px`, background: ORANGE }} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function KpiCard({ emoji, label, value, sub, subColor, accent }) {
   return (
     <div style={{ ...cardStyle, position: 'relative', overflow: 'hidden' }}>
@@ -316,38 +339,65 @@ export default function KrispiesSalesPage() {
   }, [activeSales]);
 
   // ---- SECTION 4: Store performance over selected range ----
+  const SPARK_DAYS = 14;
   const storePerf = useMemo(() => {
     const f = parseDate(fromDate);
     const t = parseDate(toDate);
     if (!f || !t) return { rows: [], scopeTotal: 0 };
 
-    const last7Start = latestDate ? addDays(latestDate, -6) : null;
+    // Previous equal-length window immediately before the selected range
+    const periodLen = daysBetween(f, t) + 1;
+    const prevTo = addDays(f, -1);
+    const prevFrom = addDays(prevTo, -(periodLen - 1));
+
+    const sparkStart = latestDate ? addDays(latestDate, -(SPARK_DAYS - 1)) : null;
     const map = {};
     for (const s of scopeStores) {
       map[s.id] = {
-        store: s, revenue: 0, cash: 0, online: 0,
-        spark: {}, // iso -> amount for last 7 days
+        store: s, revenue: 0, cash: 0, online: 0, prevRevenue: 0,
+        dayCash: {}, dayOnline: {}, // iso -> value for spark window
       };
     }
     for (const r of activeSales) {
-      if (!map[r.store_id]) continue;
+      const m = map[r.store_id];
+      if (!m) continue;
       if (r.d >= f && r.d <= t) {
-        map[r.store_id].revenue += r.amount;
-        map[r.store_id].cash += r.cash_sales;
-        map[r.store_id].online += r.online_sales;
+        m.revenue += r.amount; m.cash += r.cash_sales; m.online += r.online_sales;
       }
-      if (last7Start && r.d >= last7Start && r.d <= latestDate) {
-        map[r.store_id].spark[toISO(r.d)] = (map[r.store_id].spark[toISO(r.d)] || 0) + r.amount;
+      if (r.d >= prevFrom && r.d <= prevTo) m.prevRevenue += r.amount;
+      if (sparkStart && r.d >= sparkStart && r.d <= latestDate) {
+        const k = toISO(r.d);
+        m.dayCash[k] = (m.dayCash[k] || 0) + r.cash_sales;
+        m.dayOnline[k] = (m.dayOnline[k] || 0) + r.online_sales;
       }
     }
-    const last7Days = [];
-    if (latestDate) {
-      for (let i = 6; i >= 0; i--) last7Days.push(toISO(addDays(latestDate, -i)));
-    }
-    const rows = Object.values(map).map(m => ({
-      ...m,
-      sparkVals: last7Days.map(k => m.spark[k] || 0),
-    })).sort((a, b) => b.revenue - a.revenue);
+    const sparkKeys = [];
+    if (latestDate) for (let i = SPARK_DAYS - 1; i >= 0; i--) sparkKeys.push(toISO(addDays(latestDate, -i)));
+
+    const rows = Object.values(map).map(m => {
+      const cashSeries = sparkKeys.map(k => m.dayCash[k] || 0);
+      const onlineSeries = sparkKeys.map(k => m.dayOnline[k] || 0);
+      const totalSeries = cashSeries.map((c, i) => c + onlineSeries[i]);
+      // change vs previous equal period
+      const changePct = m.prevRevenue > 0 ? ((m.revenue - m.prevRevenue) / m.prevRevenue) * 100 : null;
+      // latest day vs trailing-7 avg (anomaly detection)
+      const n = totalSeries.length;
+      const latest = n ? totalSeries[n - 1] : 0;
+      const latestCash = n ? cashSeries[n - 1] : 0;
+      const trailing = totalSeries.slice(Math.max(0, n - 8), n - 1).filter(v => v > 0);
+      const trailingAvg = trailing.length ? trailing.reduce((a, b) => a + b, 0) / trailing.length : 0;
+      const trailingCash = cashSeries.slice(Math.max(0, n - 8), n - 1).filter(v => v > 0);
+      const trailingCashAvg = trailingCash.length ? trailingCash.reduce((a, b) => a + b, 0) / trailingCash.length : 0;
+      const alerts = [];
+      if (trailingAvg > 0 && latest > 0 && latest < 0.6 * trailingAvg) {
+        alerts.push({ type: 'sales', text: `Sales ▼ ${Math.round((1 - latest / trailingAvg) * 100)}% vs avg` });
+      }
+      if (trailingCashAvg > 0 && latestCash >= 0 && latestCash < 0.5 * trailingCashAvg) {
+        alerts.push({ type: 'cash', text: `Cash drop ▼ ${Math.round((1 - latestCash / trailingCashAvg) * 100)}%` });
+      }
+      return { ...m, cashSeries, onlineSeries, totalSeries, changePct, alerts };
+    }).sort((a, b) => b.revenue - a.revenue);
+
     const scopeTotal = rows.reduce((s, r) => s + r.revenue, 0);
     return { rows, scopeTotal };
   }, [activeSales, scopeStores, fromDate, toDate, latestDate]);
@@ -504,57 +554,94 @@ export default function KrispiesSalesPage() {
             <WeeklyTable view={view} weeks={weekly} scopeStores={scopeStores} />
           </div>
 
-          {/* SECTION 4 — Store performance */}
+          {/* SECTION 4 — Store performance grid */}
           <div style={{ ...cardStyle, marginBottom: '22px' }}>
-            <div style={{ fontSize: '16px', fontWeight: '800', color: '#1a1a2e', marginBottom: '4px' }}>🏪 Store Performance · {view}</div>
-            <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '16px' }}>
-              Selected period · {fmtDateShort(parseDate(fromDate))} – {fmtDateShort(parseDate(toDate))}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: '#1a1a2e' }}>🏪 Store Performance · {view}</div>
+                <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
+                  {fmtDateShort(parseDate(fromDate))} – {fmtDateShort(parseDate(toDate))} · vs previous {daysBetween(parseDate(fromDate), parseDate(toDate)) + 1} days
+                </div>
+              </div>
+              {/* Legend */}
+              <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#9ca3af', fontWeight: '600', alignItems: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '9px', height: '9px', background: ORANGE, borderRadius: '2px' }} /> Cash</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '9px', height: '9px', background: BLUE, borderRadius: '2px' }} /> Online</span>
+                <span style={{ color: '#c0c0d0' }}>· last 14 days</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '14px' }}>
               {storePerf.rows.map((r, idx) => {
                 const pct = storePerf.scopeTotal > 0 ? (r.revenue / storePerf.scopeTotal) * 100 : 0;
                 const isTop = idx === 0 && r.revenue > 0;
                 const splitTotal = r.cash + r.online;
-                const cashPct = splitTotal > 0 ? (r.cash / splitTotal) * 100 : null;
+                const cashPct = splitTotal > 0 ? (r.cash / splitTotal) * 100 : 0;
+                const onlinePct = 100 - cashPct;
+                const ch = r.changePct;
+                const chColor = ch == null ? '#9ca3af' : ch >= 0 ? GREEN_DARK : '#ef4444';
+                const chBg = ch == null ? '#f3f4f6' : ch >= 0 ? '#ecfdf5' : '#fef2f2';
                 return (
                   <div key={r.store.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
-                    padding: '14px 16px', borderRadius: '12px',
-                    background: isTop ? `${ORANGE}0c` : '#fafafb',
-                    border: isTop ? `1px solid ${ORANGE}33` : '1px solid #f0f0f5',
+                    padding: '16px', borderRadius: '14px',
+                    background: isTop ? `${ORANGE}08` : '#fff',
+                    border: isTop ? `1.5px solid ${ORANGE}44` : '1px solid #f0f0f5',
+                    boxShadow: '0 1px 6px rgba(0,0,0,0.03)',
+                    display: 'flex', flexDirection: 'column', gap: '12px',
                   }}>
-                    <div style={{ flex: '1 1 200px', minWidth: '180px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    {/* Header: name + region + change badge */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '15px', fontWeight: '800', color: '#1a1a2e' }}>
-                          {r.store.name} {isTop && <span title="Top store">🏆</span>}
+                          {r.store.name}{isTop && ' 🏆'}
                         </span>
                         <RegionChip region={r.store.region || 'TG'} />
                       </div>
-                      <div style={{ height: '7px', background: '#f0f0f5', borderRadius: '5px', overflow: 'hidden', maxWidth: '320px' }}>
-                        <div style={{
-                          width: `${pct}%`, height: '100%', borderRadius: '5px',
-                          background: `linear-gradient(90deg, ${acc.c1}, ${acc.c2})`,
-                        }} />
-                      </div>
-                      {cashPct != null && (
-                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '5px', fontWeight: '600' }}>
-                          Cash {cashPct.toFixed(0)}% · Online {(100 - cashPct).toFixed(0)}%
-                        </div>
-                      )}
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: chColor, background: chBg, padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
+                        {ch == null ? '—' : `${ch >= 0 ? '▲' : '▼'} ${Math.abs(ch).toFixed(0)}%`}
+                      </span>
                     </div>
-                    <div style={{ textAlign: 'right', minWidth: '110px' }}>
-                      <div style={{ fontSize: '18px', fontWeight: '800', color: '#1a1a2e' }}>{fmtShort(r.revenue)}</div>
+
+                    {/* Revenue + share */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '900', color: '#1a1a2e', letterSpacing: '-0.5px' }}>{fmtShort(r.revenue)}</div>
                       <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600' }}>{pct.toFixed(1)}% of {view}</div>
                     </div>
-                    <div style={{ flexShrink: 0 }}>
-                      <MiniBars values={r.sparkVals} color={acc.c1} />
-                      <div style={{ fontSize: '9px', color: '#bbb', textAlign: 'center', marginTop: '3px', fontWeight: '600' }}>7-DAY</div>
+
+                    {/* Cash vs Online stacked bar */}
+                    <div>
+                      <div style={{ display: 'flex', height: '8px', borderRadius: '5px', overflow: 'hidden', background: '#f0f0f5' }}>
+                        <div style={{ width: `${cashPct}%`, background: ORANGE }} />
+                        <div style={{ width: `${onlinePct}%`, background: BLUE }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px', fontSize: '11px', fontWeight: '600' }}>
+                        <span style={{ color: ORANGE_DARK }}>Cash {cashPct.toFixed(0)}% · {fmtShort(r.cash)}</span>
+                        <span style={{ color: BLUE_DARK }}>Online {onlinePct.toFixed(0)}% · {fmtShort(r.online)}</span>
+                      </div>
                     </div>
+
+                    {/* 14-day stacked daily bars */}
+                    <StackedBars cash={r.cashSeries} online={r.onlineSeries} />
+
+                    {/* Anomaly alerts */}
+                    {r.alerts.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        {r.alerts.map((a, i) => (
+                          <div key={i} style={{
+                            fontSize: '11px', fontWeight: '700', color: '#b91c1c', background: '#fef2f2',
+                            border: '1px solid #fecaca', borderRadius: '8px', padding: '5px 9px',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                          }}>
+                            ⚠️ {a.text}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
               {storePerf.rows.length === 0 && (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>No stores in this scope.</div>
+                <div style={{ padding: '24px', textAlign: 'center', color: '#9ca3af', fontSize: '13px', gridColumn: '1 / -1' }}>No stores in this scope.</div>
               )}
             </div>
           </div>
