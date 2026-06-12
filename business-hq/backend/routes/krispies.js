@@ -9,17 +9,13 @@ const COMPLIANCE_ITEMS = [
   { key: 'tshirt',         label: 'T-shirt / Uniform Check',       emoji: '👕' },
   { key: 'opening_photo',  label: 'Opening Photo on WhatsApp',     emoji: '📸' },
   { key: 'cleanliness',    label: 'Store Cleanliness & Hygiene',   emoji: '🧹' },
-  // Product & Display
-  { key: 'display',        label: 'Product Display Arrangement',   emoji: '🍰' },
-  { key: 'freshness',      label: 'Product Freshness Check',       emoji: '🥐' },
-  { key: 'stock',          label: 'Stock Availability',            emoji: '📦' },
-  { key: 'aggregators',    label: 'Swiggy / Zomato Live & Menu',   emoji: '🛵' },
+  // Online
+  { key: 'aggregators',    label: 'Swiggy/Zomato Menu Update',     emoji: '🛵' },
   // Cash & Billing
   { key: 'billing',        label: 'Billing / POS Working',         emoji: '🧾' },
   { key: 'cash',           label: 'Cash Updates / Reconciliation', emoji: '💵' },
   // Closing
   { key: 'closing_report', label: 'Closing Report Posted',         emoji: '📊' },
-  { key: 'logout',         label: 'Employee Logout Marked',        emoji: '🔒' },
 ];
 
 router.get('/items', (req, res) => res.json(COMPLIANCE_ITEMS));
