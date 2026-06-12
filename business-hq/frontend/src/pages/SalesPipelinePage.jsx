@@ -325,7 +325,7 @@ function KanbanColumn({ stage, deals, onEdit, onDelete, onMove }) {
       </div>
 
       {/* Deal cards */}
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, maxHeight: '560px', overflowY: 'auto', paddingRight: '2px' }}>
         {deals.length === 0 ? (
           <div style={{
             textAlign: 'center', padding: '24px 12px',
@@ -736,7 +736,18 @@ function startOfDay(d) {
   return x;
 }
 
-function FollowUpPanel({ deals, onEdit }) {
+function followupRelative(dateStr) {
+  const today = startOfDay(new Date());
+  const fd = startOfDay(dateStr);
+  const diffDays = Math.round((fd.getTime() - today.getTime()) / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  if (diffDays === -1) return 'Yesterday';
+  if (diffDays < 0) return `${Math.abs(diffDays)}d ago`;
+  return `${diffDays}d`;
+}
+
+function CompactFollowUpPanel({ deals, onEdit }) {
   const today = startOfDay(new Date());
   const tomorrow = new Date(today.getTime() + 86400000);
   const weekEnd = new Date(today.getTime() + 7 * 86400000);
@@ -753,29 +764,31 @@ function FollowUpPanel({ deals, onEdit }) {
     else if (fd.getTime() === tomorrow.getTime()) groups.tomorrow.push(d);
     else if (fd <= weekEnd) groups.thisWeek.push(d);
   }
+  // sort each bucket by date ascending
+  for (const k of Object.keys(groups)) {
+    groups[k].sort((a, b) => new Date(a.next_followup_date) - new Date(b.next_followup_date));
+  }
 
   const sections = [
-    { key: 'overdue',  label: 'Overdue',    emoji: '⚠️', color: '#ef4444', bg: '#fef2f2', deals: groups.overdue },
-    { key: 'today',    label: 'Today',      emoji: '🔥', color: '#f59e0b', bg: '#fffbeb', deals: groups.today },
-    { key: 'tomorrow', label: 'Tomorrow',   emoji: '📌', color: '#3b82f6', bg: '#eff6ff', deals: groups.tomorrow },
-    { key: 'thisWeek', label: 'This Week',  emoji: '📅', color: '#8b5cf6', bg: '#f5f3ff', deals: groups.thisWeek },
+    { key: 'overdue',  label: 'Overdue',   emoji: '⚠️', color: '#ef4444', bg: '#fef2f2', deals: groups.overdue },
+    { key: 'today',    label: 'Today',     emoji: '🔥', color: '#f59e0b', bg: '#fffbeb', deals: groups.today },
+    { key: 'tomorrow', label: 'Tomorrow',  emoji: '📌', color: '#3b82f6', bg: '#eff6ff', deals: groups.tomorrow },
+    { key: 'thisWeek', label: 'This Week', emoji: '📅', color: '#8b5cf6', bg: '#f5f3ff', deals: groups.thisWeek },
   ];
 
   const totalDue = groups.overdue.length + groups.today.length;
 
-  // Nothing to follow up
-  if (withFollowup.length === 0) return null;
-
   return (
     <div style={{
-      background: 'white', borderRadius: '16px', padding: '20px',
+      background: 'white', borderRadius: '16px', padding: '16px',
       border: '1px solid #f0f0f5', boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
-      marginBottom: '20px'
+      marginBottom: '20px', maxHeight: '280px', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '18px' }}>🔔</span>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1a1a2e' }}>Follow-ups</h3>
+          <span style={{ fontSize: '16px' }}>🔔</span>
+          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>Follow-ups</h3>
         </div>
         {totalDue > 0 && (
           <span style={{ fontSize: '12px', fontWeight: '700', color: '#ef4444', background: '#fef2f2', padding: '4px 12px', borderRadius: '20px' }}>
@@ -784,29 +797,34 @@ function FollowUpPanel({ deals, onEdit }) {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', minHeight: 0 }}>
         {sections.map(section => (
-          <div key={section.key} style={{ background: section.bg, borderRadius: '12px', padding: '14px', border: `1px solid ${section.color}20` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div key={section.key} style={{
+            background: section.bg, borderRadius: '12px', padding: '10px',
+            border: `1px solid ${section.color}20`,
+            display: 'flex', flexDirection: 'column', maxHeight: '240px', minHeight: 0
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>{section.emoji}</span>
-                <span style={{ fontSize: '13px', fontWeight: '700', color: section.color }}>{section.label}</span>
+                <span style={{ fontSize: '13px' }}>{section.emoji}</span>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: section.color }}>{section.label}</span>
               </div>
-              <span style={{ fontSize: '12px', fontWeight: '700', color: section.color, background: 'white', padding: '1px 8px', borderRadius: '10px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: section.color, background: 'white', padding: '1px 7px', borderRadius: '10px' }}>
                 {section.deals.length}
               </span>
             </div>
             {section.deals.length === 0 ? (
               <div style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', padding: '8px 0' }}>Nothing here ✓</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', minHeight: 0 }}>
                 {section.deals.map(deal => (
                   <button
                     key={deal.id}
                     onClick={() => onEdit(deal)}
+                    title={`${deal.company} · ${formatCurrency(deal.value)}`}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: '8px',
-                      width: '100%', padding: '8px 10px', borderRadius: '8px',
+                      display: 'flex', alignItems: 'center', gap: '7px',
+                      width: '100%', padding: '6px 8px', borderRadius: '8px',
                       background: 'white', border: 'none', cursor: 'pointer',
                       textAlign: 'left', fontFamily: 'inherit',
                       transition: 'box-shadow 0.15s'
@@ -814,18 +832,16 @@ function FollowUpPanel({ deals, onEdit }) {
                     onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
                     onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
                   >
-                    {deal.assignee_name && (
-                      <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: deal.assignee_color || '#6c63ff', color: 'white', fontSize: '10px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {deal.assignee_name[0]}
-                      </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '12px', fontWeight: '700', color: '#1a1a2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deal.company}</div>
-                      <div style={{ fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {deal.contact_name || deal.title}{deal.contact_phone ? ` · ${deal.contact_phone}` : ''}
-                      </div>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: deal.assignee_color || '#cbd5e1', color: 'white', fontSize: '10px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {deal.assignee_name ? deal.assignee_name[0] : '?'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, fontSize: '12px', fontWeight: '600', color: '#1a1a2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {deal.company}
                     </div>
                     <div style={{ fontSize: '11px', fontWeight: '700', color: '#374151', flexShrink: 0 }}>{formatCurrency(deal.value)}</div>
+                    <div style={{ fontSize: '10px', fontWeight: '600', color: section.color, flexShrink: 0, minWidth: '34px', textAlign: 'right' }}>
+                      {followupRelative(deal.next_followup_date)}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -888,12 +904,225 @@ function RevenueForecast({ deals }) {
   );
 }
 
+const PAGE_SIZE = 25;
+
+function DealListView({ deals, onEdit, onDelete, onMove }) {
+  const [sortKey, setSortKey] = useState('next_followup_date');
+  const [sortDir, setSortDir] = useState('asc');
+  const [page, setPage] = useState(1);
+
+  // Reset to page 1 whenever the underlying deal set changes (filters/search)
+  const dealIdsSig = deals.map(d => d.id).join(',');
+  useEffect(() => { setPage(1); }, [dealIdsSig, sortKey, sortDir]);
+
+  function toggleSort(key) {
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  }
+
+  const sorted = [...deals].sort((a, b) => {
+    let av, bv;
+    if (sortKey === 'value') {
+      av = a.value || 0; bv = b.value || 0;
+    } else if (sortKey === 'next_followup_date') {
+      av = a.next_followup_date ? new Date(a.next_followup_date).getTime() : Infinity;
+      bv = b.next_followup_date ? new Date(b.next_followup_date).getTime() : Infinity;
+    } else if (sortKey === 'company') {
+      av = (a.company || '').toLowerCase(); bv = (b.company || '').toLowerCase();
+    } else {
+      av = a[sortKey]; bv = b[sortKey];
+    }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * PAGE_SIZE;
+  const pageDeals = sorted.slice(start, start + PAGE_SIZE);
+
+  const today = startOfDay(new Date());
+
+  const arrow = key => (sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
+
+  const thStyle = {
+    textAlign: 'left', padding: '10px 12px', fontSize: '11px', fontWeight: '700',
+    color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.4px',
+    borderBottom: '1px solid #f0f0f5', whiteSpace: 'nowrap', position: 'sticky', top: 0,
+    background: '#fafafb', zIndex: 1
+  };
+  const sortableTh = { ...thStyle, cursor: 'pointer', userSelect: 'none' };
+  const tdStyle = { padding: '10px 12px', fontSize: '13px', borderBottom: '1px solid #f5f5f7', verticalAlign: 'middle' };
+
+  return (
+    <div style={{
+      background: 'white', borderRadius: '16px',
+      border: '1px solid #f0f0f5', boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
+      overflow: 'hidden'
+    }}>
+      <div style={{ overflowX: 'auto' }}>
+        {deals.length === 0 ? (
+          <div style={{ padding: '48px 16px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+            No deals match your filters.
+          </div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '880px' }}>
+            <thead>
+              <tr>
+                <th style={sortableTh} onClick={() => toggleSort('company')}>Company{arrow('company')}</th>
+                <th style={thStyle}>Type</th>
+                <th style={sortableTh} onClick={() => toggleSort('value')}>Value{arrow('value')}</th>
+                <th style={thStyle}>Stage</th>
+                <th style={thStyle}>Owner</th>
+                <th style={sortableTh} onClick={() => toggleSort('next_followup_date')}>Follow-up{arrow('next_followup_date')}</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageDeals.map(deal => {
+                const stageInfo = STAGES.find(s => s.key === deal.stage);
+                let fuColor = '#6b7280', fuBg = 'transparent', fuText = formatDate(deal.next_followup_date) || '—';
+                if (deal.next_followup_date) {
+                  const fd = startOfDay(deal.next_followup_date);
+                  if (fd < today) { fuColor = '#ef4444'; fuBg = '#fef2f2'; }
+                  else if (fd.getTime() === today.getTime()) { fuColor = '#f59e0b'; fuBg = '#fffbeb'; fuText = 'Today'; }
+                }
+                return (
+                  <tr
+                    key={deal.id}
+                    onClick={() => onEdit(deal)}
+                    style={{ cursor: 'pointer', transition: 'background 0.12s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fafafb'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={tdStyle}>
+                      <div style={{ fontWeight: '700', color: '#1a1a2e' }}>{deal.company}</div>
+                      {(deal.contact_name || deal.contact_phone) && (
+                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px' }}>
+                          {deal.contact_name}{deal.contact_name && deal.contact_phone ? ' · ' : ''}{deal.contact_phone}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ ...tdStyle, color: '#6b7280' }}>{deal.title}</td>
+                    <td style={{ ...tdStyle, fontWeight: '700', color: '#1a1a2e', whiteSpace: 'nowrap' }}>{formatCurrency(deal.value)}</td>
+                    <td style={tdStyle} onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          background: stageInfo?.bg || '#f3f4f6', color: stageInfo?.color || '#6b7280',
+                          border: `1px solid ${stageInfo?.color || '#6b7280'}25`,
+                          borderRadius: '20px', padding: '2px 9px', fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap'
+                        }}>
+                          {stageInfo?.emoji} {stageInfo?.label}
+                        </span>
+                        <MoveStageDropdown deal={deal} onMove={onMove} />
+                      </div>
+                    </td>
+                    <td style={tdStyle}>
+                      {deal.assignee_name ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Avatar name={deal.assignee_name} color={deal.assignee_color} size={22} />
+                          <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', whiteSpace: 'nowrap' }}>{deal.assignee_name}</span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#d1d5db' }}>Unassigned</span>
+                      )}
+                    </td>
+                    <td style={tdStyle}>
+                      <span style={{
+                        fontSize: '12px', fontWeight: '600', color: fuColor,
+                        background: fuBg, padding: fuBg !== 'transparent' ? '2px 8px' : '0',
+                        borderRadius: '6px', whiteSpace: 'nowrap'
+                      }}>
+                        {fuText}
+                      </span>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={() => onEdit(deal)}
+                          title="Edit"
+                          style={{ background: '#f5f5f7', border: 'none', cursor: 'pointer', width: '28px', height: '28px', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => onDelete(deal.id)}
+                          title="Delete"
+                          style={{ background: '#fef2f2', border: 'none', cursor: 'pointer', width: '28px', height: '28px', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                            <path d="M10 11v6"/><path d="M14 11v6"/>
+                            <path d="M9 6V4h6v2"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {deals.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid #f0f0f5', flexWrap: 'wrap', gap: '10px' }}>
+          <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+            Showing {start + 1}–{Math.min(start + PAGE_SIZE, sorted.length)} of {sorted.length}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              style={{
+                padding: '6px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
+                background: 'white', cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                fontSize: '13px', fontWeight: '600', color: safePage <= 1 ? '#d1d5db' : '#6b7280',
+                fontFamily: 'inherit'
+              }}
+            >
+              ← Prev
+            </button>
+            <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Page {safePage} of {totalPages}</span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              style={{
+                padding: '6px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
+                background: 'white', cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                fontSize: '13px', fontWeight: '600', color: safePage >= totalPages ? '#d1d5db' : '#6b7280',
+                fontFamily: 'inherit'
+              }}
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SalesPipelinePage() {
   const { addToast } = useApp();
   const [deals, setDeals] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const [search, setSearch] = useState('');
+  const [stageFilter, setStageFilter] = useState('All');
+  const [viewMode, setViewMode] = useState('List'); // 'List' | 'Board'
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', deal?: {} }
 
   useEffect(() => {
@@ -918,6 +1147,17 @@ export default function SalesPipelinePage() {
   const filteredDeals = filter === 'All'
     ? deals
     : deals.filter(d => d.assignee_name === filter);
+
+  // visibleDeals: owner + stage + search — drives both List and Board views
+  const searchLc = search.trim().toLowerCase();
+  const visibleDeals = filteredDeals.filter(d => {
+    if (stageFilter !== 'All' && d.stage !== stageFilter) return false;
+    if (searchLc) {
+      const hay = `${d.company || ''} ${d.contact_name || ''} ${d.contact_phone || ''}`.toLowerCase();
+      if (!hay.includes(searchLc)) return false;
+    }
+    return true;
+  });
 
   // Stats
   const activePipelineValue = filteredDeals
@@ -997,44 +1237,6 @@ export default function SalesPipelinePage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Filter buttons */}
-          <div style={{ display: 'flex', background: '#f5f5f7', borderRadius: '10px', padding: '3px', gap: '2px' }}>
-            {['All', 'Ritesh', 'Sneha'].map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                style={{
-                  padding: '6px 14px', borderRadius: '8px', border: 'none',
-                  cursor: 'pointer', fontSize: '13px', fontWeight: '600',
-                  fontFamily: 'inherit',
-                  background: filter === f ? 'white' : 'transparent',
-                  color: filter === f ? '#6c63ff' : '#6b7280',
-                  boxShadow: filter === f ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.15s'
-                }}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-
-          {/* New Deal button */}
-          <button
-            onClick={() => setModal({ mode: 'create' })}
-            style={{
-              background: 'linear-gradient(135deg, #8b5cf6, #6c63ff)',
-              color: 'white', border: 'none', cursor: 'pointer',
-              padding: '10px 20px', borderRadius: '12px',
-              fontSize: '14px', fontWeight: '700', fontFamily: 'inherit',
-              display: 'flex', alignItems: 'center', gap: '6px',
-              boxShadow: '0 4px 14px rgba(108,99,255,0.35)'
-            }}
-          >
-            <span style={{ fontSize: '16px' }}>+</span>
-            New Deal
-          </button>
-        </div>
       </div>
 
       {/* Stats row */}
@@ -1046,30 +1248,140 @@ export default function SalesPipelinePage() {
         <StatCard emoji="📅" label="Avg Deal Size" value={formatCurrency(avgDealSize)} sub="Excl. lost" color="#8b5cf6" />
       </div>
 
-      {/* Follow-ups panel — start your day here */}
-      <FollowUpPanel deals={filteredDeals} onEdit={deal => setModal({ mode: 'edit', deal })} />
+      {/* Compact follow-ups panel — start your day here */}
+      <CompactFollowUpPanel deals={filteredDeals} onEdit={deal => setModal({ mode: 'edit', deal })} />
 
-      {/* Kanban board */}
+      {/* Toolbar */}
       <div style={{
-        display: 'flex', gap: '16px',
-        overflowX: 'auto',
-        paddingBottom: '16px',
-        alignItems: 'flex-start'
+        display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+        background: 'white', borderRadius: '14px', padding: '12px 14px',
+        border: '1px solid #f0f0f5', boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
+        marginBottom: '16px', position: 'sticky', top: '0', zIndex: 10
       }}>
-        {STAGES.map(stage => {
-          const stageDeals = filteredDeals.filter(d => d.stage === stage.key);
-          return (
-            <KanbanColumn
-              key={stage.key}
-              stage={stage}
-              deals={stageDeals}
-              onEdit={deal => setModal({ mode: 'edit', deal })}
-              onDelete={handleDelete}
-              onMove={handleMove}
-            />
-          );
-        })}
+        {/* Search */}
+        <div style={{ position: 'relative', flex: '1 1 240px', minWidth: '200px' }}>
+          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', pointerEvents: 'none' }}>🔍</span>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search company, contact, phone…"
+            style={{
+              width: '100%', padding: '9px 12px 9px 34px',
+              border: '1px solid #e5e7eb', borderRadius: '10px',
+              fontSize: '13px', fontFamily: 'inherit', color: '#1a1a2e',
+              background: '#fafafb', outline: 'none', boxSizing: 'border-box'
+            }}
+          />
+        </div>
+
+        {/* Owner filter segmented */}
+        <div style={{ display: 'flex', background: '#f5f5f7', borderRadius: '10px', padding: '3px', gap: '2px' }}>
+          {['All', 'Ritesh', 'Sneha'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                padding: '6px 14px', borderRadius: '8px', border: 'none',
+                cursor: 'pointer', fontSize: '13px', fontWeight: '600', fontFamily: 'inherit',
+                background: filter === f ? 'white' : 'transparent',
+                color: filter === f ? '#6c63ff' : '#6b7280',
+                boxShadow: filter === f ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.15s'
+              }}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* Stage filter dropdown */}
+        <select
+          value={stageFilter}
+          onChange={e => setStageFilter(e.target.value)}
+          style={{
+            padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '10px',
+            fontSize: '13px', fontFamily: 'inherit', color: '#374151', background: 'white',
+            cursor: 'pointer', outline: 'none', fontWeight: '600'
+          }}
+        >
+          <option value="All">All Stages</option>
+          {STAGES.map(s => (
+            <option key={s.key} value={s.key}>{s.label}</option>
+          ))}
+        </select>
+
+        {/* View toggle segmented */}
+        <div style={{ display: 'flex', background: '#f5f5f7', borderRadius: '10px', padding: '3px', gap: '2px' }}>
+          {['List', 'Board'].map(v => (
+            <button
+              key={v}
+              onClick={() => setViewMode(v)}
+              style={{
+                padding: '6px 14px', borderRadius: '8px', border: 'none',
+                cursor: 'pointer', fontSize: '13px', fontWeight: '600', fontFamily: 'inherit',
+                background: viewMode === v ? 'white' : 'transparent',
+                color: viewMode === v ? '#6c63ff' : '#6b7280',
+                boxShadow: viewMode === v ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.15s'
+              }}
+            >
+              {v === 'List' ? '☰ List' : '▦ Board'}
+            </button>
+          ))}
+        </div>
+
+        {/* Count */}
+        <span style={{ fontSize: '12px', fontWeight: '600', color: '#9ca3af', marginLeft: 'auto' }}>
+          {visibleDeals.length} deal{visibleDeals.length !== 1 ? 's' : ''}
+        </span>
+
+        {/* New Deal */}
+        <button
+          onClick={() => setModal({ mode: 'create' })}
+          style={{
+            background: 'linear-gradient(135deg, #8b5cf6, #6c63ff)',
+            color: 'white', border: 'none', cursor: 'pointer',
+            padding: '9px 18px', borderRadius: '10px',
+            fontSize: '13px', fontWeight: '700', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', gap: '6px',
+            boxShadow: '0 4px 14px rgba(108,99,255,0.35)', whiteSpace: 'nowrap'
+          }}
+        >
+          <span style={{ fontSize: '15px' }}>+</span>
+          New Deal
+        </button>
       </div>
+
+      {/* Main deals area */}
+      {viewMode === 'List' ? (
+        <DealListView
+          deals={visibleDeals}
+          onEdit={deal => setModal({ mode: 'edit', deal })}
+          onDelete={handleDelete}
+          onMove={handleMove}
+        />
+      ) : (
+        <div style={{
+          display: 'flex', gap: '16px',
+          overflowX: 'auto',
+          paddingBottom: '16px',
+          alignItems: 'flex-start'
+        }}>
+          {STAGES.map(stage => {
+            const stageDeals = visibleDeals.filter(d => d.stage === stage.key);
+            return (
+              <KanbanColumn
+                key={stage.key}
+                stage={stage}
+                deals={stageDeals}
+                onEdit={deal => setModal({ mode: 'edit', deal })}
+                onDelete={handleDelete}
+                onMove={handleMove}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Revenue forecast */}
       <RevenueForecast deals={filteredDeals} />
