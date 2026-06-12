@@ -2,18 +2,27 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
-// Compliance checklist items (master list)
+// Daily store checklist — ordered open → operate → close
 const COMPLIANCE_ITEMS = [
-  { key: 'cleanliness',   label: 'Store Cleanliness & Hygiene', emoji: '🧹' },
-  { key: 'staff_uniform', label: 'Staff in Uniform',            emoji: '👔' },
-  { key: 'stock',         label: 'Stock Availability',          emoji: '📦' },
-  { key: 'display',       label: 'Product Display Arrangement', emoji: '🍰' },
-  { key: 'freshness',     label: 'Product Freshness Check',     emoji: '🥐' },
-  { key: 'billing',       label: 'Billing / POS Working',       emoji: '🧾' },
-  { key: 'fssai',         label: 'FSSAI License Displayed',     emoji: '📋' },
-  { key: 'temperature',   label: 'Fridge/Display Temperature',  emoji: '🌡️' },
-  { key: 'pest',          label: 'Pest Control / Sanitation',   emoji: '🐜' },
-  { key: 'feedback',      label: 'Customer Feedback Register',  emoji: '📖' },
+  // Opening
+  { key: 'store_open',     label: 'Store Opened on Time',          emoji: '🔓' },
+  { key: 'tshirt',         label: 'T-shirt / Uniform Check',       emoji: '👕' },
+  { key: 'login',          label: 'Employee Login Marked',         emoji: '🟢' },
+  { key: 'opening_photo',  label: 'Opening Photo on WhatsApp',     emoji: '📸' },
+  { key: 'cleanliness',    label: 'Store Cleanliness & Hygiene',   emoji: '🧹' },
+  // Product
+  { key: 'display',        label: 'Product Display Arrangement',   emoji: '🍰' },
+  { key: 'freshness',      label: 'Product Freshness Check',       emoji: '🥐' },
+  { key: 'stock',          label: 'Stock Availability',            emoji: '📦' },
+  { key: 'temperature',    label: 'Fridge / Display Temperature',  emoji: '🌡️' },
+  // Mid-day
+  { key: 'lunch',          label: 'Lunch Break Posted on WhatsApp', emoji: '🍱' },
+  // Cash & Billing
+  { key: 'billing',        label: 'Billing / POS Working',         emoji: '🧾' },
+  { key: 'cash',           label: 'Cash Updates / Reconciliation', emoji: '💵' },
+  // Closing
+  { key: 'closing_report', label: 'Closing Sales Report Posted',   emoji: '📊' },
+  { key: 'logout',         label: 'Employee Logout Marked',        emoji: '🔒' },
 ];
 
 router.get('/items', (req, res) => res.json(COMPLIANCE_ITEMS));
