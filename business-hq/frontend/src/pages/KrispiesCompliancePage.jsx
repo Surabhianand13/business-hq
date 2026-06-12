@@ -20,21 +20,24 @@ function todayStr() {
   return new Date().toISOString().split('T')[0];
 }
 
-const STATUS_BTNS = [
-  { value: 'pass', label: '✅ Pass', color: COLORS.pass },
-  { value: 'fail', label: '❌ Fail', color: COLORS.fail },
-  { value: 'na', label: 'N/A', color: COLORS.na },
-];
+// Cycle order when clicking a cell
+const CYCLE = { pending: 'pass', pass: 'fail', fail: 'na', na: 'pending' };
+
+const CELL_DISPLAY = {
+  pass:    { label: '✓',   bg: '#ecfdf5', color: COLORS.pass, border: '#10b98140' },
+  fail:    { label: '✕',   bg: '#fef2f2', color: COLORS.fail, border: '#ef444440' },
+  na:      { label: 'N/A', bg: '#f3f4f6', color: COLORS.na,   border: '#d1d5db' },
+  pending: { label: '–',   bg: 'white',   color: '#d1d5db',   border: '#e8e8ed' },
+};
 
 export default function KrispiesCompliancePage() {
   const { addToast } = useApp();
   const [date, setDate] = useState(todayStr());
-  const [stores, setStores] = useState([]);
+  const [allStores, setAllStores] = useState([]);
   const [items, setItems] = useState([]);
-  const [records, setRecords] = useState([]); // raw compliance rows for the date
+  const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Load stores + items once
   useEffect(() => {
     async function loadStatic() {
       try {
@@ -42,7 +45,7 @@ export default function KrispiesCompliancePage() {
           api.getKrispiesStores(),
           api.getComplianceItems(),
         ]);
-        setStores(storesData);
+        setAllStores(storesData);
         setItems(itemsData);
       } catch (e) {
         addToast('Failed to load stores', 'error');
@@ -51,7 +54,6 @@ export default function KrispiesCompliancePage() {
     loadStatic();
   }, [addToast]);
 
-  // Load compliance whenever date changes
   useEffect(() => {
     let active = true;
     async function loadCompliance() {
@@ -69,12 +71,15 @@ export default function KrispiesCompliancePage() {
     return () => { active = false; };
   }, [date]);
 
-  // Lookup: `${store_id}-${item_key}` -> status
+  // Exclude NSL — it's a wholesale account, not a retail store
+  const stores = useMemo(
+    () => allStores.filter(s => s.name !== 'NSL'),
+    [allStores]
+  );
+
   const statusMap = useMemo(() => {
     const m = {};
-    for (const r of records) {
-      m[`${r.store_id}-${r.item_key}`] = r.status;
-    }
+    for (const r of records) m[`${r.store_id}-${r.item_key}`] = r.status;
     return m;
   }, [records]);
 
@@ -82,50 +87,48 @@ export default function KrispiesCompliancePage() {
     return statusMap[`${storeId}-${itemKey}`] || 'pending';
   }
 
-  async function setStatus(storeId, itemKey, status) {
-    // Optimistic update of local records
+  async function cycleStatus(storeId, itemKey) {
+    const current = getStatus(storeId, itemKey);
+    const next = CYCLE[current];
     setRecords(prev => {
       const idx = prev.findIndex(r => r.store_id === storeId && r.item_key === itemKey);
       if (idx >= 0) {
         const copy = [...prev];
-        copy[idx] = { ...copy[idx], status };
+        copy[idx] = { ...copy[idx], status: next };
         return copy;
       }
-      return [...prev, { store_id: storeId, item_key: itemKey, status, check_date: date }];
+      return [...prev, { store_id: storeId, item_key: itemKey, status: next, check_date: date }];
     });
     try {
-      await api.saveCompliance({ store_id: storeId, check_date: date, item_key: itemKey, status });
+      await api.saveCompliance({ store_id: storeId, check_date: date, item_key: itemKey, status: next });
     } catch (e) {
       addToast('Failed to save check', 'error');
-      // re-fetch to recover correct state
       try { setRecords(await api.getCompliance(date)); } catch {}
     }
   }
 
-  // Overall + per-store stats
+  // Stats
   const stats = useMemo(() => {
-    const totalItems = stores.length * items.length;
     let passed = 0, failed = 0, pending = 0, na = 0;
     const perStore = {};
+    for (const s of stores) perStore[s.id] = { passed: 0, na: 0 };
     for (const s of stores) {
-      let sPassed = 0, sChecked = 0, sNa = 0;
       for (const it of items) {
         const st = getStatus(s.id, it.key);
-        if (st === 'pass') { passed++; sPassed++; }
-        else if (st === 'fail') { failed++; }
-        else if (st === 'na') { na++; sNa++; }
-        else { pending++; }
-        if (st !== 'pending') sChecked++;
+        if (st === 'pass') { passed++; perStore[s.id].passed++; }
+        else if (st === 'fail') failed++;
+        else if (st === 'na') { na++; perStore[s.id].na++; }
+        else pending++;
       }
-      // pct of evaluated (non-NA) items that passed
-      const evaluable = items.length - sNa;
-      const pct = evaluable > 0 ? Math.round((sPassed / evaluable) * 100) : 0;
-      const allPassed = items.length > 0 && sPassed + sNa === items.length && sPassed > 0;
-      perStore[s.id] = { pct, allPassed };
     }
-    const evaluableTotal = totalItems - na;
-    const overallPct = evaluableTotal > 0 ? Math.round((passed / evaluableTotal) * 100) : 0;
-    return { totalItems, passed, failed, pending, na, perStore, overallPct };
+    const evaluable = (stores.length * items.length) - na;
+    const overallPct = evaluable > 0 ? Math.round((passed / evaluable) * 100) : 0;
+    // per-store pct
+    for (const s of stores) {
+      const ev = items.length - perStore[s.id].na;
+      perStore[s.id].pct = ev > 0 ? Math.round((perStore[s.id].passed / ev) * 100) : 0;
+    }
+    return { passed, failed, pending, na, overallPct, perStore };
   }, [stores, items, statusMap]);
 
   return (
@@ -147,98 +150,91 @@ export default function KrispiesCompliancePage() {
         </div>
       </div>
 
-      {/* Overall summary bar */}
-      <div style={{ ...cardStyle, padding: '20px 24px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-            <div style={{
-              width: '64px', height: '64px', borderRadius: '50%', flexShrink: 0,
-              background: `conic-gradient(${COLORS.pass} ${stats.overallPct * 3.6}deg, #f0f0f5 0deg)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-            }}>
-              <div style={{
-                width: '48px', height: '48px', borderRadius: '50%', background: 'white',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '15px', fontWeight: '800', color: '#1a1a2e',
-              }}>{stats.overallPct}%</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '16px', fontWeight: '700', color: '#1a1a2e' }}>Overall Compliance</div>
-              <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px' }}>
-                {stores.length} stores · {items.length} checks each
-              </div>
-            </div>
+      {/* Summary bar */}
+      <div style={{ ...cardStyle, padding: '16px 24px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            width: '54px', height: '54px', borderRadius: '50%', flexShrink: 0,
+            background: `conic-gradient(${COLORS.pass} ${stats.overallPct * 3.6}deg, #f0f0f5 0deg)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '800', color: '#1a1a2e' }}>{stats.overallPct}%</div>
           </div>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <StatPill emoji="✅" label="Passed" count={stats.passed} color={COLORS.pass} />
-            <StatPill emoji="❌" label="Failed" count={stats.failed} color={COLORS.fail} />
-            <StatPill emoji="⏳" label="Pending" count={stats.pending} color="#f59e0b" />
-            {stats.na > 0 && <StatPill emoji="➖" label="N/A" count={stats.na} color={COLORS.na} />}
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a1a2e' }}>Overall Compliance</div>
+            <div style={{ fontSize: '12px', color: '#9ca3af' }}>{stores.length} stores · {items.length} checks each</div>
           </div>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <StatPill emoji="✅" label="Passed" count={stats.passed} color={COLORS.pass} />
+          <StatPill emoji="❌" label="Failed" count={stats.failed} color={COLORS.fail} />
+          <StatPill emoji="⏳" label="Pending" count={stats.pending} color="#f59e0b" />
         </div>
       </div>
 
-      {loading && <div style={{ padding: '30px', textAlign: 'center', color: '#9ca3af' }}>Loading checks...</div>}
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', fontSize: '12px', color: '#9ca3af', flexWrap: 'wrap' }}>
+        <span>Tap a cell to change:</span>
+        <span><b style={{ color: COLORS.pass }}>✓</b> Pass</span>
+        <span><b style={{ color: COLORS.fail }}>✕</b> Fail</span>
+        <span><b style={{ color: COLORS.na }}>N/A</b></span>
+        <span><b style={{ color: '#d1d5db' }}>–</b> Pending</span>
+      </div>
 
-      {/* Per-store grid */}
-      <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '16px' }}>
-        {stores.map(store => {
-          const sStat = stats.perStore[store.id] || { pct: 0, allPassed: false };
-          return (
-            <div key={store.id} style={{ ...cardStyle, padding: '18px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', paddingBottom: '12px', borderBottom: '1px solid #f5f5f7' }}>
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: '800', color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {store.name}
-                    {sStat.allPassed && <span title="All checks passed">🟢</span>}
+      {loading && <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af' }}>Loading checks...</div>}
+
+      {/* Single compliance table */}
+      <div style={{ ...cardStyle, padding: '0', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid #f0f0f5' }}>
+              <th style={{ textAlign: 'left', padding: '14px 16px', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', position: 'sticky', left: 0, background: 'white', minWidth: '200px' }}>
+                Compliance Check
+              </th>
+              {stores.map(s => (
+                <th key={s.id} style={{ textAlign: 'center', padding: '14px 10px', minWidth: '90px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a2e' }}>{s.name}</div>
+                  <div style={{
+                    display: 'inline-block', marginTop: '4px', fontSize: '11px', fontWeight: '700',
+                    padding: '2px 8px', borderRadius: '8px',
+                    background: stats.perStore[s.id]?.pct >= 80 ? '#ecfdf5' : stats.perStore[s.id]?.pct >= 50 ? '#fffbeb' : '#fef2f2',
+                    color: stats.perStore[s.id]?.pct >= 80 ? COLORS.pass : stats.perStore[s.id]?.pct >= 50 ? '#d97706' : COLORS.fail,
+                  }}>{stats.perStore[s.id]?.pct ?? 0}%</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, ri) => (
+              <tr key={item.key} style={{ borderBottom: ri < items.length - 1 ? '1px solid #f5f5f7' : 'none' }}>
+                <td style={{ padding: '10px 16px', position: 'sticky', left: 0, background: 'white' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '15px' }}>{item.emoji}</span>
+                    <span style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>{item.label}</span>
                   </div>
-                  <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>👤 {store.manager || '—'}</div>
-                </div>
-                <div style={{
-                  fontSize: '13px', fontWeight: '800', padding: '6px 12px', borderRadius: '10px',
-                  background: sStat.pct >= 80 ? '#ecfdf5' : sStat.pct >= 50 ? '#fffbeb' : '#fef2f2',
-                  color: sStat.pct >= 80 ? COLORS.pass : sStat.pct >= 50 ? '#d97706' : COLORS.fail,
-                }}>{sStat.pct}%</div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {items.map(item => {
-                  const current = getStatus(store.id, item.key);
+                </td>
+                {stores.map(s => {
+                  const st = getStatus(s.id, item.key);
+                  const disp = CELL_DISPLAY[st];
                   return (
-                    <div key={item.key} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      gap: '10px', padding: '7px 4px',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-                        <span style={{ fontSize: '15px', flexShrink: 0 }}>{item.emoji}</span>
-                        <span style={{ fontSize: '13px', fontWeight: '500', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                        {STATUS_BTNS.map(btn => {
-                          const active = current === btn.value;
-                          return (
-                            <button
-                              key={btn.value}
-                              onClick={() => setStatus(store.id, item.key, btn.value)}
-                              style={{
-                                border: active ? `1px solid ${btn.color}` : '1px solid #e8e8ed',
-                                background: active ? `${btn.color}18` : 'white',
-                                color: active ? btn.color : '#9ca3af',
-                                borderRadius: '8px', padding: '4px 8px', fontSize: '12px',
-                                fontWeight: active ? '700' : '500', cursor: 'pointer', fontFamily: 'inherit',
-                                whiteSpace: 'nowrap', transition: 'all 0.12s',
-                              }}
-                            >{btn.label}</button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <td key={s.id} style={{ textAlign: 'center', padding: '8px 10px' }}>
+                      <button
+                        onClick={() => cycleStatus(s.id, item.key)}
+                        title={`${s.name} · ${item.label}`}
+                        style={{
+                          width: '40px', height: '32px', borderRadius: '8px',
+                          border: `1.5px solid ${disp.border}`, background: disp.bg, color: disp.color,
+                          fontSize: st === 'na' ? '11px' : '16px', fontWeight: '800',
+                          cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
+                        }}
+                      >{disp.label}</button>
+                    </td>
                   );
                 })}
-              </div>
-            </div>
-          );
-        })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -247,13 +243,13 @@ export default function KrispiesCompliancePage() {
 function StatPill({ emoji, label, count, color }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px',
+      display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px',
       borderRadius: '12px', background: `${color}12`, border: `1px solid ${color}22`,
     }}>
-      <span style={{ fontSize: '15px' }}>{emoji}</span>
+      <span style={{ fontSize: '14px' }}>{emoji}</span>
       <div>
-        <div style={{ fontSize: '17px', fontWeight: '800', color, lineHeight: 1 }}>{count}</div>
-        <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600' }}>{label}</div>
+        <div style={{ fontSize: '16px', fontWeight: '800', color, lineHeight: 1 }}>{count}</div>
+        <div style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600' }}>{label}</div>
       </div>
     </div>
   );
