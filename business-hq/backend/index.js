@@ -120,14 +120,20 @@ async function initDB() {
         meeting_url TEXT,
         agenda TEXT,
         external_attendees TEXT DEFAULT '',
+        recurrence TEXT DEFAULT 'none',
+        recurrence_end DATE,
+        block_type TEXT DEFAULT 'meeting',
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
 
-    // Migration: add external_attendees column if it doesn't exist yet
-    await pool.query(`
-      ALTER TABLE meetings ADD COLUMN IF NOT EXISTS external_attendees TEXT DEFAULT ''
-    `);
+    // Migrations: add columns if they don't exist yet
+    await pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS external_attendees TEXT DEFAULT ''`).catch(() => {});
+    await pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS recurrence TEXT DEFAULT 'none'`).catch(() => {});
+    await pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS recurrence_end DATE`).catch(() => {});
+    await pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS block_type TEXT DEFAULT 'meeting'`).catch(() => {});
+    // Focus blocks don't need a workspace — allow NULL
+    await pool.query(`ALTER TABLE meetings ALTER COLUMN workspace_id DROP NOT NULL`).catch(() => {});
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS meeting_attendees (
