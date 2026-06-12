@@ -79,12 +79,16 @@ export default function KrispiesCompliancePage() {
 
   const statusMap = useMemo(() => {
     const m = {};
-    for (const r of records) m[`${r.store_id}-${r.item_key}`] = r.status;
+    for (const r of records) m[`${r.store_id}-${r.item_key}`] = r;
     return m;
   }, [records]);
 
   function getStatus(storeId, itemKey) {
-    return statusMap[`${storeId}-${itemKey}`] || 'pending';
+    return statusMap[`${storeId}-${itemKey}`]?.status || 'pending';
+  }
+
+  function getCheckedBy(storeId, itemKey) {
+    return statusMap[`${storeId}-${itemKey}`]?.checked_by_name || null;
   }
 
   async function cycleStatus(storeId, itemKey) {
@@ -215,19 +219,27 @@ export default function KrispiesCompliancePage() {
                 </td>
                 {stores.map(s => {
                   const st = getStatus(s.id, item.key);
+                  const checkedBy = getCheckedBy(s.id, item.key);
                   const disp = CELL_DISPLAY[st];
                   return (
                     <td key={s.id} style={{ textAlign: 'center', padding: '8px 10px' }}>
-                      <button
-                        onClick={() => cycleStatus(s.id, item.key)}
-                        title={`${s.name} · ${item.label}`}
-                        style={{
-                          width: '40px', height: '32px', borderRadius: '8px',
-                          border: `1.5px solid ${disp.border}`, background: disp.bg, color: disp.color,
-                          fontSize: st === 'na' ? '11px' : '16px', fontWeight: '800',
-                          cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
-                        }}
-                      >{disp.label}</button>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                        <button
+                          onClick={() => cycleStatus(s.id, item.key)}
+                          title={checkedBy ? `${s.name} · ${item.label} — marked by ${checkedBy}` : `${s.name} · ${item.label}`}
+                          style={{
+                            width: '40px', height: '32px', borderRadius: '8px',
+                            border: `1.5px solid ${disp.border}`, background: disp.bg, color: disp.color,
+                            fontSize: st === 'na' ? '11px' : '16px', fontWeight: '800',
+                            cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
+                          }}
+                        >{disp.label}</button>
+                        {checkedBy && st !== 'pending' && (
+                          <span style={{ fontSize: '9px', color: '#9ca3af', fontWeight: '600', maxWidth: '44px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`Marked by ${checkedBy}`}>
+                            {checkedBy.split(' ')[0]}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   );
                 })}
