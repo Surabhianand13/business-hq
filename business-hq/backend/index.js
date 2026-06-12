@@ -22,6 +22,9 @@ const dealsRouter = require('./routes/deals');
 const krispiesRouter = require('./routes/krispies');
 const auth = require('./middleware/auth');
 
+// Lightweight health check for uptime pingers (keeps Render instance warm)
+app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
