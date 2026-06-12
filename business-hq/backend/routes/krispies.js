@@ -5,17 +5,18 @@ const pool = require('../db');
 // Daily store checklist — crucial items, ordered open → operate → close
 const COMPLIANCE_ITEMS = [
   // Opening
-  { key: 'login',          label: 'Employee Login Marked',         emoji: '🟢' },
-  { key: 'tshirt',         label: 'T-shirt / Uniform Check',       emoji: '👕' },
-  { key: 'opening_photo',  label: 'Opening Photo on WhatsApp',     emoji: '📸' },
-  { key: 'cleanliness',    label: 'Store Cleanliness & Hygiene',   emoji: '🧹' },
+  { key: 'login',          label: 'Employee Login Marked',          emoji: '🟢' },
+  { key: 'grooming',       label: 'Gloves, Hair Cap, T-shirt Check', emoji: '🧤' },
+  { key: 'opening_photo',  label: 'Opening Photo on WhatsApp',       emoji: '📸' },
+  { key: 'cleanliness',    label: 'Store Cleanliness & Hygiene',     emoji: '🧹' },
   // Online
-  { key: 'aggregators',    label: 'Swiggy/Zomato Menu Update',     emoji: '🛵' },
+  { key: 'aggregators',    label: 'Swiggy/Zomato Menu Update',       emoji: '🛵' },
   // Cash & Billing
-  { key: 'billing',        label: 'Billing / POS Working',         emoji: '🧾' },
-  { key: 'cash',           label: 'Cash Updates / Reconciliation', emoji: '💵' },
+  { key: 'billing',        label: 'Billing / POS Working',           emoji: '🧾' },
+  { key: 'complaints',     label: 'Customer Complaints (Online & Offline)', emoji: '💬' },
+  { key: 'cash',           label: 'Cash Updates / Reconciliation',   emoji: '💵' },
   // Closing
-  { key: 'closing_report', label: 'Closing Report Posted',         emoji: '📊' },
+  { key: 'closing_report', label: 'Closing Report Posted',           emoji: '📊' },
 ];
 
 router.get('/items', (req, res) => res.json(COMPLIANCE_ITEMS));
