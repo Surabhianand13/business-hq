@@ -200,10 +200,10 @@ export default function KrispiesRenewalsPage() {
   // Per-store items for the matrix
   const perStore = useMemo(() => renewals.filter(r => r.store_id), [renewals]);
 
-  // Columns = stores that have per-store renewals
+  // Columns = stores that have per-store renewals (reversed order)
   const matrixStores = useMemo(() => {
     const ids = new Set(perStore.map(r => r.store_id));
-    return stores.filter(s => ids.has(s.id));
+    return stores.filter(s => ids.has(s.id)).reverse();
   }, [perStore, stores]);
 
   // Frequency lookup per title
