@@ -12,6 +12,7 @@ const pageLabels = {
   '/pipeline': 'Sales Pipeline',
   '/krispies-sales': 'Krispies Sales',
   '/krispies-compliance': 'Store Compliance',
+  '/krispies-renewals': 'Licences & Renewals',
 };
 
 export default function MobileTopBar() {

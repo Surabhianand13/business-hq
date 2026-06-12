@@ -13,7 +13,7 @@ const COMPLIANCE_ITEMS = [
   { key: 'aggregators',    label: 'Swiggy/Zomato Menu Update',       emoji: '🛵' },
   // Cash & Billing
   { key: 'billing',        label: 'Billing / POS Working',           emoji: '🧾' },
-  { key: 'complaints',     label: 'Customer Complaints (Online & Offline)', emoji: '💬' },
+  { key: 'complaints',     label: 'Customer Complaints (Online & Offline)', emoji: '💬', type: 'number' },
   { key: 'cash',           label: 'Cash Updates / Reconciliation',   emoji: '💵' },
   // Closing
   { key: 'closing_report', label: 'Closing Report Posted',           emoji: '📊' },
@@ -84,6 +84,70 @@ router.post('/compliance', async (req, res) => {
       RETURNING *
     `, [store_id, check_date, item_key, status, notes || null, req.user.id]);
     res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Renewals / periodic processes ───
+const RENEWAL_SELECT = `
+  SELECT r.*, st.name AS store_name
+  FROM krispies_renewals r
+  LEFT JOIN krispies_stores st ON r.store_id = st.id
+`;
+
+router.get('/renewals', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`${RENEWAL_SELECT} ORDER BY r.due_date ASC NULLS LAST`);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/renewals', async (req, res) => {
+  try {
+    const { title, category, frequency, store_id, due_date, responsible, notes } = req.body;
+    const { rows } = await pool.query(
+      `INSERT INTO krispies_renewals (title, category, frequency, store_id, due_date, responsible, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      [title, category||'licence', frequency||'annual', store_id||null, due_date||null, responsible||null, notes||null]
+    );
+    const { rows: out } = await pool.query(`${RENEWAL_SELECT} WHERE r.id = $1`, [rows[0].id]);
+    res.json(out[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/renewals/:id', async (req, res) => {
+  try {
+    const { title, category, frequency, store_id, due_date, last_done, responsible, notes } = req.body;
+    await pool.query(
+      `UPDATE krispies_renewals SET title=$1, category=$2, frequency=$3, store_id=$4, due_date=$5, last_done=$6, responsible=$7, notes=$8, updated_at=NOW() WHERE id=$9`,
+      [title, category||'licence', frequency||'annual', store_id||null, due_date||null, last_done||null, responsible||null, notes||null, req.params.id]
+    );
+    const { rows: out } = await pool.query(`${RENEWAL_SELECT} WHERE r.id = $1`, [req.params.id]);
+    res.json(out[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Mark done: sets last_done=today and rolls due_date forward by frequency
+router.post('/renewals/:id/done', async (req, res) => {
+  try {
+    const { rows: cur } = await pool.query('SELECT * FROM krispies_renewals WHERE id=$1', [req.params.id]);
+    if (!cur.length) return res.status(404).json({ error: 'Not found' });
+    const r = cur[0];
+    const base = r.due_date ? new Date(r.due_date) : new Date();
+    const next = new Date(base);
+    const add = { annual: 12, semiannual: 6, quarterly: 3, monthly: 1 }[r.frequency] || 12;
+    next.setMonth(next.getMonth() + add);
+    const today = new Date().toISOString().split('T')[0];
+    await pool.query('UPDATE krispies_renewals SET last_done=$1, due_date=$2, updated_at=NOW() WHERE id=$3',
+      [today, next.toISOString().split('T')[0], req.params.id]);
+    const { rows: out } = await pool.query(`${RENEWAL_SELECT} WHERE r.id = $1`, [req.params.id]);
+    res.json(out[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/renewals/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM krispies_renewals WHERE id=$1', [req.params.id]);
+    res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

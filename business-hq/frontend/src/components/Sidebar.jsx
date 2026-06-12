@@ -194,6 +194,7 @@ export default function Sidebar() {
         <WorkspaceItem icon="🥐" label="Krispies" wsName="Krispies" onNavClick={handleNavClick} />
         <NavItem to="/krispies-sales" icon="📊" label="Krispies Sales" onNavClick={handleNavClick} />
         <NavItem to="/krispies-compliance" icon="✅" label="Store Compliance" onNavClick={handleNavClick} />
+        <NavItem to="/krispies-renewals" icon="📋" label="Licences & Renewals" onNavClick={handleNavClick} />
         <WorkspaceItem icon="🤖" label="Solvv AI" wsName="Solvv AI" onNavClick={handleNavClick} />
         <NavItem to="/pipeline" icon="💰" label="Sales Pipeline" onNavClick={handleNavClick} />
         <WorkspaceItem icon="🎬" label="Content" wsName="Krispies Content" onNavClick={handleNavClick} />

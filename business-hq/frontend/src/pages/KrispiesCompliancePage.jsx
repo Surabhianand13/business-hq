@@ -111,13 +111,16 @@ export default function KrispiesCompliancePage() {
     }
   }
 
-  // Stats
+  // Checklist items only (exclude numeric/data-entry items from pass-fail stats)
+  const checkItems = useMemo(() => items.filter(it => it.type !== 'number'), [items]);
+
+  // Stats — based only on pass/fail checklist items
   const stats = useMemo(() => {
     let passed = 0, failed = 0, pending = 0, na = 0;
     const perStore = {};
     for (const s of stores) perStore[s.id] = { passed: 0, na: 0 };
     for (const s of stores) {
-      for (const it of items) {
+      for (const it of checkItems) {
         const st = getStatus(s.id, it.key);
         if (st === 'pass') { passed++; perStore[s.id].passed++; }
         else if (st === 'fail') failed++;
@@ -125,15 +128,32 @@ export default function KrispiesCompliancePage() {
         else pending++;
       }
     }
-    const evaluable = (stores.length * items.length) - na;
+    const evaluable = (stores.length * checkItems.length) - na;
     const overallPct = evaluable > 0 ? Math.round((passed / evaluable) * 100) : 0;
-    // per-store pct
     for (const s of stores) {
-      const ev = items.length - perStore[s.id].na;
+      const ev = checkItems.length - perStore[s.id].na;
       perStore[s.id].pct = ev > 0 ? Math.round((perStore[s.id].passed / ev) * 100) : 0;
     }
     return { passed, failed, pending, na, overallPct, perStore };
-  }, [stores, items, statusMap]);
+  }, [stores, checkItems, statusMap]);
+
+  async function setComplaintCount(storeId, itemKey, value) {
+    const val = String(Math.max(0, parseInt(value) || 0));
+    setRecords(prev => {
+      const idx = prev.findIndex(r => r.store_id === storeId && r.item_key === itemKey);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], status: val };
+        return copy;
+      }
+      return [...prev, { store_id: storeId, item_key: itemKey, status: val, check_date: date }];
+    });
+    try {
+      await api.saveCompliance({ store_id: storeId, check_date: date, item_key: itemKey, status: val });
+    } catch (e) {
+      addToast('Failed to save', 'error');
+    }
+  }
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -220,6 +240,32 @@ export default function KrispiesCompliancePage() {
                 {stores.map(s => {
                   const st = getStatus(s.id, item.key);
                   const checkedBy = getCheckedBy(s.id, item.key);
+
+                  // Numeric items (e.g. complaints count) — render a number stepper
+                  if (item.type === 'number') {
+                    const count = st === 'pending' ? '' : st;
+                    const num = parseInt(count) || 0;
+                    return (
+                      <td key={s.id} style={{ textAlign: 'center', padding: '8px 10px' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={count}
+                          placeholder="0"
+                          onChange={e => setComplaintCount(s.id, item.key, e.target.value)}
+                          title={checkedBy ? `${s.name} · ${item.label} — entered by ${checkedBy}` : `${s.name} · ${item.label}`}
+                          style={{
+                            width: '48px', height: '32px', borderRadius: '8px', textAlign: 'center',
+                            border: `1.5px solid ${num > 0 ? '#ef444440' : '#e8e8ed'}`,
+                            background: num > 0 ? '#fef2f2' : 'white',
+                            color: num > 0 ? '#ef4444' : '#9ca3af',
+                            fontSize: '14px', fontWeight: '800', fontFamily: 'inherit', outline: 'none',
+                          }}
+                        />
+                      </td>
+                    );
+                  }
+
                   const disp = CELL_DISPLAY[st];
                   return (
                     <td key={s.id} style={{ textAlign: 'center', padding: '8px 10px' }}>

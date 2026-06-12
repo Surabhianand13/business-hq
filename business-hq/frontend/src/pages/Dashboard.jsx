@@ -117,6 +117,7 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [deals, setDeals] = useState([]);
+  const [renewals, setRenewals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const [activeWs, setActiveWs] = useState('all');
@@ -130,6 +131,10 @@ export default function Dashboard() {
         setData(dash);
         setTasks(allTasks);
         setDeals(allDeals);
+        try {
+          const ren = await api.getRenewals();
+          setRenewals(ren);
+        } catch { /* renewals are non-critical */ }
       } catch {
         addToast('Failed to load dashboard', 'error');
       } finally {
@@ -170,6 +175,25 @@ export default function Dashboard() {
     .filter(d => d.stage === 'meeting_scheduled' && d.meeting_date && new Date(d.meeting_date) >= new Date())
     .sort((a, b) => new Date(a.meeting_date) - new Date(b.meeting_date))
     .slice(0, 4);
+
+  // Urgent compliance renewals (overdue or due within 30 days)
+  const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
+  const urgentRenewals = renewals
+    .filter(r => {
+      if (!r.due_date) return false;
+      const d = new Date(r.due_date); d.setHours(0, 0, 0, 0);
+      const days = Math.round((d - todayMidnight) / 86400000);
+      return days <= 30;
+    })
+    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
+  function renewalDaysLabel(due) {
+    const d = new Date(due); d.setHours(0, 0, 0, 0);
+    const days = Math.round((d - todayMidnight) / 86400000);
+    if (days < 0) return { text: `${Math.abs(days)}d overdue`, color: '#ef4444', bg: '#fef2f2' };
+    if (days === 0) return { text: 'Due today', color: '#f59e0b', bg: '#fffbeb' };
+    return { text: `${days}d left`, color: '#f59e0b', bg: '#fffbeb' };
+  }
 
   // Business health per workspace
   const workspaces = [
@@ -449,6 +473,39 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── COMPLIANCE REMINDERS ─────────────────────────────────── */}
+      {urgentRenewals.length > 0 && (
+        <div style={{ background: 'linear-gradient(135deg, #fef2f2, #fffbeb)', border: '1px solid #f59e0b30', borderRadius: '16px', padding: '16px 20px', marginBottom: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>🔔</span>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#b45309' }}>Compliance Reminders</div>
+                <div style={{ fontSize: '11px', color: '#d97706', marginTop: '1px' }}>{urgentRenewals.length} renewal{urgentRenewals.length > 1 ? 's' : ''} need attention</div>
+              </div>
+            </div>
+            <button onClick={() => navigate('/krispies-renewals')} style={{ background: 'white', border: '1px solid #f59e0b40', color: '#b45309', fontSize: '11px', fontWeight: '700', padding: '5px 12px', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+              View all →
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+            {urgentRenewals.slice(0, 4).map(r => {
+              const dl = renewalDaysLabel(r.due_date);
+              return (
+                <div key={r.id} onClick={() => navigate('/krispies-renewals')} style={{ background: 'white', borderRadius: '12px', padding: '12px 14px', border: '1px solid #f0f0f5', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: dl.color, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</div>
+                    {r.store_name && <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>🏪 {r.store_name}</div>}
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: dl.color, background: dl.bg, padding: '3px 9px', borderRadius: '8px', whiteSpace: 'nowrap', flexShrink: 0 }}>{dl.text}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── UPCOMING LEAD MEETINGS ───────────────────────────────── */}
       {upcomingMeetings.length > 0 && (

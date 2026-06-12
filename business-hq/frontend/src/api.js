@@ -71,6 +71,11 @@ export const api = {
   getComplianceItems: () => request('GET', '/api/krispies/items'),
   getCompliance: (date) => request('GET', `/api/krispies/compliance?date=${date}`),
   saveCompliance: (data) => request('POST', '/api/krispies/compliance', data),
+  getRenewals: () => request('GET', '/api/krispies/renewals'),
+  createRenewal: (data) => request('POST', '/api/krispies/renewals', data),
+  updateRenewal: (id, data) => request('PUT', `/api/krispies/renewals/${id}`, data),
+  markRenewalDone: (id) => request('POST', `/api/krispies/renewals/${id}/done`),
+  deleteRenewal: (id) => request('DELETE', `/api/krispies/renewals/${id}`),
 };
 
 export default api;

@@ -16,6 +16,7 @@ import ReportsPage from './pages/ReportsPage';
 import SalesPipelinePage from './pages/SalesPipelinePage';
 import KrispiesSalesPage from './pages/KrispiesSalesPage';
 import KrispiesCompliancePage from './pages/KrispiesCompliancePage';
+import KrispiesRenewalsPage from './pages/KrispiesRenewalsPage';
 
 export const AppContext = createContext(null);
 
@@ -111,6 +112,7 @@ export default function App() {
           <Route path="/pipeline" element={<ProtectedRoute><SalesPipelinePage /></ProtectedRoute>} />
           <Route path="/krispies-sales" element={<ProtectedRoute><KrispiesSalesPage /></ProtectedRoute>} />
           <Route path="/krispies-compliance" element={<ProtectedRoute><KrispiesCompliancePage /></ProtectedRoute>} />
+          <Route path="/krispies-renewals" element={<ProtectedRoute><KrispiesRenewalsPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         {/* Toasts */}

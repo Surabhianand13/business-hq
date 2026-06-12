@@ -1,0 +1,492 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useApp } from '../App';
+import api from '../api';
+
+const cardStyle = {
+  background: 'white',
+  border: '1px solid #f0f0f5',
+  boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+  borderRadius: '16px',
+};
+
+const STATUS = {
+  overdue:  { key: 'overdue',  label: 'Overdue',  color: '#ef4444', bg: '#fef2f2', border: '#ef444433' },
+  duesoon:  { key: 'duesoon',  label: 'Due Soon', color: '#f59e0b', bg: '#fffbeb', border: '#f59e0b33' },
+  upcoming: { key: 'upcoming', label: 'Upcoming', color: '#3b82f6', bg: '#eff6ff', border: '#3b82f633' },
+  valid:    { key: 'valid',    label: 'Valid',    color: '#10b981', bg: '#ecfdf5', border: '#10b98133' },
+  none:     { key: 'none',     label: 'No Date',  color: '#9ca3af', bg: '#f3f4f6', border: '#d1d5db' },
+};
+
+const FREQ_LABELS = {
+  annual: 'Annual',
+  semiannual: 'Semi-annual',
+  quarterly: 'Quarterly',
+  monthly: 'Monthly',
+};
+
+const CATEGORIES = [
+  { value: 'licence', label: 'Licence' },
+  { value: 'service', label: 'Service' },
+  { value: 'tax', label: 'Tax' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'other', label: 'Other' },
+];
+
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function daysUntil(due) {
+  if (!due) return null;
+  const d = new Date(due);
+  d.setHours(0, 0, 0, 0);
+  return Math.round((d - startOfToday()) / 86400000);
+}
+
+function statusFor(due) {
+  if (!due) return STATUS.none;
+  const days = daysUntil(due);
+  if (days < 0) return STATUS.overdue;
+  if (days <= 30) return STATUS.duesoon;
+  if (days <= 90) return STATUS.upcoming;
+  return STATUS.valid;
+}
+
+function statusLabel(due) {
+  if (!due) return 'No due date';
+  const days = daysUntil(due);
+  if (days < 0) return `${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} overdue`;
+  if (days === 0) return 'Due today';
+  return `Due in ${days} day${days === 1 ? '' : 's'}`;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+export default function KrispiesRenewalsPage() {
+  const { addToast } = useApp();
+  const [renewals, setRenewals] = useState([]);
+  const [stores, setStores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  async function load() {
+    try {
+      const [ren, st] = await Promise.all([api.getRenewals(), api.getKrispiesStores()]);
+      setRenewals(ren);
+      setStores(st);
+    } catch (e) {
+      addToast('Failed to load renewals', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const licences = useMemo(
+    () => renewals.filter(r => !r.store_id).sort((a, b) => {
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return new Date(a.due_date) - new Date(b.due_date);
+    }),
+    [renewals]
+  );
+
+  const services = useMemo(() => renewals.filter(r => r.store_id), [renewals]);
+
+  const servicesByStore = useMemo(() => {
+    const map = new Map();
+    for (const s of stores) map.set(s.id, { store: s, items: [] });
+    for (const r of services) {
+      if (!map.has(r.store_id)) map.set(r.store_id, { store: { id: r.store_id, name: r.store_name }, items: [] });
+      map.get(r.store_id).items.push(r);
+    }
+    return [...map.values()].filter(g => g.items.length > 0);
+  }, [services, stores]);
+
+  const counts = useMemo(() => {
+    const c = { overdue: 0, duesoon: 0, upcoming: 0, valid: 0 };
+    for (const r of renewals) {
+      const s = statusFor(r.due_date).key;
+      if (c[s] !== undefined) c[s]++;
+    }
+    return c;
+  }, [renewals]);
+
+  const urgent = useMemo(
+    () => renewals
+      .filter(r => { const k = statusFor(r.due_date).key; return k === 'overdue' || k === 'duesoon'; })
+      .sort((a, b) => new Date(a.due_date) - new Date(b.due_date)),
+    [renewals]
+  );
+
+  async function markDone(id) {
+    try {
+      const updated = await api.markRenewalDone(id);
+      setRenewals(prev => prev.map(r => r.id === id ? updated : r));
+      addToast('Marked done — next due date scheduled', 'success');
+    } catch (e) {
+      addToast('Failed to update', 'error');
+    }
+  }
+
+  function openAdd() { setEditing(null); setModalOpen(true); }
+  function openEdit(r) { setEditing(r); setModalOpen(true); }
+
+  async function handleSave(form) {
+    try {
+      if (editing) {
+        const updated = await api.updateRenewal(editing.id, form);
+        setRenewals(prev => prev.map(r => r.id === editing.id ? updated : r));
+        addToast('Renewal updated', 'success');
+      } else {
+        const created = await api.createRenewal(form);
+        setRenewals(prev => [...prev, created]);
+        addToast('Renewal added', 'success');
+      }
+      setModalOpen(false);
+    } catch (e) {
+      addToast('Failed to save', 'error');
+    }
+  }
+
+  async function handleDelete() {
+    if (!editing) return;
+    try {
+      await api.deleteRenewal(editing.id);
+      setRenewals(prev => prev.filter(r => r.id !== editing.id));
+      addToast('Renewal deleted', 'success');
+      setModalOpen(false);
+    } catch (e) {
+      addToast('Failed to delete', 'error');
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+        <div>
+          <h1 style={{ fontSize: '26px', fontWeight: '800', color: '#1a1a2e', margin: 0, letterSpacing: '-0.5px' }}>
+            📋 Licence &amp; Renewals
+          </h1>
+          <p style={{ fontSize: '14px', color: '#9ca3af', margin: '4px 0 0' }}>Never miss a renewal — automated reminders</p>
+        </div>
+        <button onClick={openAdd} style={{
+          background: 'linear-gradient(135deg, #6c63ff, #3b82f6)', color: 'white', border: 'none',
+          borderRadius: '12px', padding: '10px 18px', fontSize: '14px', fontWeight: '700',
+          cursor: 'pointer', boxShadow: '0 4px 14px rgba(108,99,255,0.3)', fontFamily: 'inherit', whiteSpace: 'nowrap',
+        }}>+ Add Renewal</button>
+      </div>
+
+      {loading ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>Loading renewals…</div>
+      ) : (
+        <>
+          {/* Alert banner */}
+          {urgent.length > 0 ? (
+            <div style={{
+              background: 'linear-gradient(135deg, #fef2f2, #fffbeb)',
+              border: '1px solid #f59e0b33', borderRadius: '16px', padding: '18px 22px', marginBottom: '18px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '22px' }}>⚠️</span>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: '#b45309' }}>
+                  {urgent.length} item{urgent.length === 1 ? '' : 's'} need attention
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {urgent.slice(0, 8).map(r => {
+                  const s = statusFor(r.due_date);
+                  return (
+                    <span key={r.id} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      background: 'white', border: `1px solid ${s.border}`, borderRadius: '10px',
+                      padding: '6px 11px', fontSize: '12px', fontWeight: '600', color: '#374151',
+                    }}>
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: s.color }} />
+                      {r.title}{r.store_name ? ` · ${r.store_name}` : ''}
+                      <span style={{ color: s.color, fontWeight: '700' }}>{statusLabel(r.due_date)}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              background: 'linear-gradient(135deg, #ecfdf5, #f0fdf4)',
+              border: '1px solid #10b98133', borderRadius: '16px', padding: '18px 22px', marginBottom: '18px',
+              display: 'flex', alignItems: 'center', gap: '10px',
+            }}>
+              <span style={{ fontSize: '22px' }}>✅</span>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#047857' }}>All compliance up to date</div>
+            </div>
+          )}
+
+          {/* Summary stat cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '22px' }}>
+            {[
+              { ...STATUS.overdue, emoji: '🔴', count: counts.overdue, sub: 'Past due date' },
+              { ...STATUS.duesoon, emoji: '🟠', count: counts.duesoon, sub: 'Within 30 days' },
+              { ...STATUS.upcoming, emoji: '🔵', count: counts.upcoming, sub: '30–90 days' },
+              { ...STATUS.valid, emoji: '🟢', count: counts.valid, sub: 'More than 90 days' },
+            ].map(s => (
+              <div key={s.key} style={{ ...cardStyle, padding: '16px 18px', borderLeft: `4px solid ${s.color}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{s.label}</span>
+                  <span style={{ fontSize: '15px' }}>{s.emoji}</span>
+                </div>
+                <div style={{ fontSize: '32px', fontWeight: '900', color: s.color, lineHeight: 1.1, marginTop: '6px' }}>{s.count}</div>
+                <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{s.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Section A: Business Licences */}
+          <div style={{ marginBottom: '26px' }}>
+            <div style={{ fontSize: '17px', fontWeight: '800', color: '#1a1a2e', marginBottom: '12px' }}>
+              🏛️ Business Licences &amp; Annual Renewals
+            </div>
+            <div style={{ ...cardStyle, padding: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {licences.length === 0 && (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>No licences tracked yet.</div>
+              )}
+              {licences.map(r => {
+                const s = statusFor(r.due_date);
+                return (
+                  <div key={r.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap',
+                    padding: '14px 16px', borderRadius: '12px', background: '#fcfcfd',
+                    borderLeft: `4px solid ${s.color}`,
+                  }}>
+                    <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a2e' }}>{r.title}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '5px' }}>
+                        <span style={{
+                          fontSize: '10px', fontWeight: '700', color: '#6b7280', background: '#f0f0f5',
+                          padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase', letterSpacing: '0.4px',
+                        }}>{FREQ_LABELS[r.frequency] || r.frequency}</span>
+                        {r.responsible && (
+                          <span style={{ fontSize: '12px', color: '#9ca3af' }}>👤 {r.responsible}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ minWidth: '120px' }}>
+                      <div style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Due Date</div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#374151' }}>{fmtDate(r.due_date)}</div>
+                    </div>
+                    <span style={{
+                      fontSize: '12px', fontWeight: '700', color: s.color, background: s.bg,
+                      border: `1px solid ${s.border}`, padding: '5px 11px', borderRadius: '20px', whiteSpace: 'nowrap',
+                    }}>{statusLabel(r.due_date)}</span>
+                    <div style={{ display: 'flex', gap: '7px', marginLeft: 'auto' }}>
+                      <button onClick={() => markDone(r.id)} style={{
+                        background: '#ecfdf5', color: '#047857', border: '1px solid #10b98133',
+                        borderRadius: '9px', padding: '7px 12px', fontSize: '12px', fontWeight: '700',
+                        cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                      }}>✓ Mark Done</button>
+                      <button onClick={() => openEdit(r)} title="Edit" style={{
+                        background: 'white', color: '#6b7280', border: '1px solid #e8e8ed',
+                        borderRadius: '9px', padding: '7px 11px', fontSize: '13px',
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}>✏️</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section B: Monthly Store Services */}
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '800', color: '#1a1a2e', marginBottom: '12px' }}>
+              🏪 Monthly Store Services
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+              {servicesByStore.length === 0 && (
+                <div style={{ ...cardStyle, padding: '24px', textAlign: 'center', color: '#9ca3af', fontSize: '13px', gridColumn: '1 / -1' }}>
+                  No store services tracked yet.
+                </div>
+              )}
+              {servicesByStore.map(({ store, items }) => (
+                <div key={store.id} style={{ ...cardStyle, padding: '16px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '30px', height: '30px', borderRadius: '8px', background: '#fffbeb',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px',
+                    }}>🏪</div>
+                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#1a1a2e' }}>{store.name}</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {items.map(r => {
+                      const s = statusFor(r.due_date);
+                      return (
+                        <div key={r.id} style={{
+                          padding: '11px 12px', borderRadius: '10px', background: '#fcfcfd',
+                          borderLeft: `4px solid ${s.color}`,
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a2e' }}>
+                              {r.title === 'Pest Control Service' ? '🐜' : '🧼'} {r.title}
+                            </div>
+                            <button onClick={() => markDone(r.id)} style={{
+                              background: '#ecfdf5', color: '#047857', border: '1px solid #10b98133',
+                              borderRadius: '8px', padding: '4px 10px', fontSize: '11px', fontWeight: '700',
+                              cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                            }}>✓ Done</button>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '7px', gap: '8px' }}>
+                            <span style={{ fontSize: '12px', color: '#9ca3af' }}>{fmtDate(r.due_date)}</span>
+                            <span style={{
+                              fontSize: '11px', fontWeight: '700', color: s.color, background: s.bg,
+                              border: `1px solid ${s.border}`, padding: '3px 9px', borderRadius: '20px', whiteSpace: 'nowrap',
+                            }}>{statusLabel(r.due_date)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {modalOpen && (
+        <RenewalModal
+          editing={editing}
+          stores={stores}
+          onClose={() => setModalOpen(false)}
+          onSave={handleSave}
+          onDelete={handleDelete}
+        />
+      )}
+    </div>
+  );
+}
+
+function RenewalModal({ editing, stores, onClose, onSave, onDelete }) {
+  const [form, setForm] = useState({
+    title: editing?.title || '',
+    category: editing?.category || 'licence',
+    frequency: editing?.frequency || 'annual',
+    store_id: editing?.store_id ? String(editing.store_id) : '',
+    due_date: editing?.due_date ? new Date(editing.due_date).toISOString().split('T')[0] : '',
+    responsible: editing?.responsible || '',
+    notes: editing?.notes || '',
+  });
+
+  function set(k, v) { setForm(prev => ({ ...prev, [k]: v })); }
+
+  function submit(e) {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    onSave({
+      ...form,
+      store_id: form.store_id ? parseInt(form.store_id) : null,
+      due_date: form.due_date || null,
+    });
+  }
+
+  const inputStyle = {
+    width: '100%', border: '1px solid #e8e8ed', borderRadius: '10px', padding: '10px 12px',
+    fontSize: '14px', fontFamily: 'inherit', color: '#1a1a2e', outline: 'none', boxSizing: 'border-box',
+  };
+  const labelStyle = { fontSize: '12px', fontWeight: '700', color: '#6b7280', marginBottom: '5px', display: 'block' };
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,0.4)',
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', overflowY: 'auto',
+    }}>
+      <form onClick={e => e.stopPropagation()} onSubmit={submit} style={{
+        background: 'white', borderRadius: '18px', width: '480px', maxWidth: '100%',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+      }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f5', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '17px', fontWeight: '800', color: '#1a1a2e' }}>
+            {editing ? 'Edit Renewal' : 'Add Renewal'}
+          </div>
+          <button type="button" onClick={onClose} style={{
+            background: '#f5f5f7', border: 'none', borderRadius: '8px', width: '30px', height: '30px',
+            cursor: 'pointer', fontSize: '18px', color: '#6b7280',
+          }}>×</button>
+        </div>
+
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div>
+            <label style={labelStyle}>Title</label>
+            <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="e.g. FSSAI Licence Renewal" style={inputStyle} autoFocus />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={labelStyle}>Category</label>
+              <select value={form.category} onChange={e => set('category', e.target.value)} style={inputStyle}>
+                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Frequency</label>
+              <select value={form.frequency} onChange={e => set('frequency', e.target.value)} style={inputStyle}>
+                <option value="annual">Annual</option>
+                <option value="semiannual">Semi-annual</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={labelStyle}>Store</label>
+              <select value={form.store_id} onChange={e => set('store_id', e.target.value)} style={inputStyle}>
+                <option value="">Business-wide</option>
+                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Due Date</label>
+              <input type="date" value={form.due_date} onChange={e => set('due_date', e.target.value)} style={inputStyle} />
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Responsible</label>
+            <input value={form.responsible} onChange={e => set('responsible', e.target.value)} placeholder="e.g. Surabhi" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Notes</label>
+            <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} placeholder="Optional notes…" style={{ ...inputStyle, resize: 'vertical' }} />
+          </div>
+        </div>
+
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #f0f0f5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+          {editing ? (
+            <button type="button" onClick={onDelete} style={{
+              background: '#fef2f2', color: '#ef4444', border: '1px solid #ef444433',
+              borderRadius: '10px', padding: '9px 14px', fontSize: '13px', fontWeight: '700',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>Delete</button>
+          ) : <span />}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="button" onClick={onClose} style={{
+              background: 'white', color: '#6b7280', border: '1px solid #e8e8ed',
+              borderRadius: '10px', padding: '9px 16px', fontSize: '13px', fontWeight: '700',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>Cancel</button>
+            <button type="submit" style={{
+              background: 'linear-gradient(135deg, #6c63ff, #3b82f6)', color: 'white', border: 'none',
+              borderRadius: '10px', padding: '9px 20px', fontSize: '13px', fontWeight: '700',
+              cursor: 'pointer', boxShadow: '0 4px 14px rgba(108,99,255,0.3)', fontFamily: 'inherit',
+            }}>{editing ? 'Save Changes' : 'Add Renewal'}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}

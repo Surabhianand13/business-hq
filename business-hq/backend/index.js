@@ -243,6 +243,22 @@ async function initDB() {
       )
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS krispies_renewals (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        category TEXT DEFAULT 'licence',
+        frequency TEXT DEFAULT 'annual',
+        store_id INTEGER REFERENCES krispies_stores(id) ON DELETE CASCADE,
+        due_date DATE,
+        last_done DATE,
+        responsible TEXT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     console.log('Tables created/verified');
 
     // Seed data
@@ -289,6 +305,35 @@ async function seedKrispies() {
       }
     }
     console.log('Seeded Krispies sales');
+  }
+
+  const { rows: renCount } = await pool.query('SELECT COUNT(*) as cnt FROM krispies_renewals');
+  if (parseInt(renCount[0].cnt) === 0) {
+    function daysFromNow(n) { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; }
+    const licences = [
+      ['FSSAI Licence Renewal', 'Surabhi', daysFromNow(-5)],
+      ['Trade Licence (GHMC) Renewal', 'Surabhi', daysFromNow(12)],
+      ['Labour Licence Renewal', 'Surabhi', daysFromNow(40)],
+      ['Shop & Establishment Renewal', 'Surabhi', daysFromNow(70)],
+      ['Road Tax - Delivery Vehicle', 'Surabhi', daysFromNow(20)],
+      ['Vehicle Insurance', 'Surabhi', daysFromNow(110)],
+      ['Fire Safety NOC', 'Surabhi', daysFromNow(8)],
+      ['Weighing Scale Stamping', 'Surabhi', daysFromNow(150)],
+      ['Food Handler Medical Checkup', 'Surabhi', daysFromNow(55)],
+    ];
+    for (const [title, responsible, due] of licences) {
+      await pool.query(
+        'INSERT INTO krispies_renewals (title, category, frequency, store_id, due_date, responsible) VALUES ($1,$2,$3,NULL,$4,$5)',
+        [title, 'licence', 'annual', due, responsible]
+      );
+    }
+    const { rows: stores } = await pool.query('SELECT id FROM krispies_stores');
+    const monthStr = (day) => { const d = new Date(); d.setDate(day); return d.toISOString().split('T')[0]; };
+    for (const st of stores) {
+      await pool.query('INSERT INTO krispies_renewals (title, category, frequency, store_id, due_date) VALUES ($1,$2,$3,$4,$5)', ['Pest Control Service', 'service', 'monthly', st.id, monthStr(25)]);
+      await pool.query('INSERT INTO krispies_renewals (title, category, frequency, store_id, due_date) VALUES ($1,$2,$3,$4,$5)', ['Deep Cleaning', 'service', 'monthly', st.id, monthStr(28)]);
+    }
+    console.log('Seeded Krispies renewals');
   }
 }
 

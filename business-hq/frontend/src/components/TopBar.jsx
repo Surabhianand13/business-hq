@@ -14,6 +14,7 @@ const pageInfo = {
   '/pipeline': { title: 'Sales Pipeline', subtitle: 'Track deals through your sales funnel.' },
   '/krispies-sales': { title: 'Krispies Sales', subtitle: 'Daily sales across all stores.' },
   '/krispies-compliance': { title: 'Store Compliance', subtitle: 'Daily compliance checks for every store.' },
+  '/krispies-renewals': { title: 'Licences & Renewals', subtitle: 'Track compliance renewals and deadlines.' },
 };
 
 const teamAvatars = [
