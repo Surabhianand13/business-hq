@@ -11,6 +11,9 @@ const pageInfo = {
   '/team': { title: 'Team', subtitle: 'Manage your team members.' },
   '/settings': { title: 'Settings', subtitle: 'Manage your account and preferences.' },
   '/reports': { title: 'Reports', subtitle: 'Analytics and insights for your business.' },
+  '/pipeline': { title: 'Sales Pipeline', subtitle: 'Track deals through your sales funnel.' },
+  '/krispies-sales': { title: 'Krispies Sales', subtitle: 'Daily sales across all stores.' },
+  '/krispies-compliance': { title: 'Store Compliance', subtitle: 'Daily compliance checks for every store.' },
 };
 
 const teamAvatars = [

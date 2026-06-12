@@ -14,6 +14,8 @@ import TeamPage from './pages/TeamPage';
 import SettingsPage from './pages/SettingsPage';
 import ReportsPage from './pages/ReportsPage';
 import SalesPipelinePage from './pages/SalesPipelinePage';
+import KrispiesSalesPage from './pages/KrispiesSalesPage';
+import KrispiesCompliancePage from './pages/KrispiesCompliancePage';
 
 export const AppContext = createContext(null);
 
@@ -107,6 +109,8 @@ export default function App() {
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
           <Route path="/pipeline" element={<ProtectedRoute><SalesPipelinePage /></ProtectedRoute>} />
+          <Route path="/krispies-sales" element={<ProtectedRoute><KrispiesSalesPage /></ProtectedRoute>} />
+          <Route path="/krispies-compliance" element={<ProtectedRoute><KrispiesCompliancePage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         {/* Toasts */}

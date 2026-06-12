@@ -19,6 +19,7 @@ const meetingRoutes = require('./routes/meetings');
 const updateRoutes = require('./routes/updates');
 const dashboardRoutes = require('./routes/dashboard');
 const dealsRouter = require('./routes/deals');
+const krispiesRouter = require('./routes/krispies');
 const auth = require('./middleware/auth');
 
 app.use('/api/auth', authRoutes);
@@ -28,6 +29,7 @@ app.use('/api/meetings', meetingRoutes);
 app.use('/api/updates', updateRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/deals', auth, dealsRouter);
+app.use('/api/krispies', auth, krispiesRouter);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
@@ -203,13 +205,90 @@ async function initDB() {
       }
     } catch (e) { console.error('Email migration error:', e.message); }
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS krispies_stores (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        location TEXT,
+        manager TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS krispies_sales (
+        id SERIAL PRIMARY KEY,
+        store_id INTEGER REFERENCES krispies_stores(id) ON DELETE CASCADE,
+        sale_date DATE NOT NULL,
+        amount REAL DEFAULT 0,
+        transactions INTEGER DEFAULT 0,
+        target REAL DEFAULT 0,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(store_id, sale_date)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS store_compliance (
+        id SERIAL PRIMARY KEY,
+        store_id INTEGER REFERENCES krispies_stores(id) ON DELETE CASCADE,
+        check_date DATE NOT NULL,
+        item_key TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        notes TEXT,
+        checked_by INTEGER REFERENCES users(id),
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(store_id, check_date, item_key)
+      )
+    `);
+
     console.log('Tables created/verified');
 
     // Seed data
     await seedData();
+    // Krispies seed runs independently (idempotent) so it populates even on existing DBs
+    await seedKrispies();
   } catch (err) {
     console.error('DB init error:', err);
     process.exit(1);
+  }
+}
+
+async function seedKrispies() {
+  const { rows: storeCount } = await pool.query('SELECT COUNT(*) as cnt FROM krispies_stores');
+  if (parseInt(storeCount[0].cnt) === 0) {
+    const stores = [
+      ['Tukkuguda', 'Tukkuguda, Hyderabad', 'Ramesh'],
+      ['Suchitra', 'Suchitra Circle, Hyderabad', 'Lakshmi'],
+      ['Boduppal', 'Boduppal, Hyderabad', 'Venkat'],
+      ['Lalbazar', 'Lalbazar, Secunderabad', 'Anil'],
+      ['Ramantapur', 'Ramantapur, Hyderabad', 'Priya'],
+      ['NSL', 'NSL Centrum Mall', 'Kiran'],
+    ];
+    for (const [name, location, manager] of stores) {
+      await pool.query('INSERT INTO krispies_stores (name, location, manager) VALUES ($1,$2,$3)', [name, location, manager]);
+    }
+    console.log('Seeded Krispies stores');
+  }
+
+  const { rows: salesCount } = await pool.query('SELECT COUNT(*) as cnt FROM krispies_sales');
+  if (parseInt(salesCount[0].cnt) === 0) {
+    const { rows: stores } = await pool.query('SELECT id FROM krispies_stores');
+    for (const store of stores) {
+      for (let d = 13; d >= 0; d--) {
+        const date = new Date();
+        date.setDate(date.getDate() - d);
+        const dateStr = date.toISOString().split('T')[0];
+        const amount = Math.floor(15000 + Math.random() * 30000);
+        const transactions = Math.floor(50 + Math.random() * 150);
+        await pool.query(
+          'INSERT INTO krispies_sales (store_id, sale_date, amount, transactions, target) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',
+          [store.id, dateStr, amount, transactions, 30000]
+        );
+      }
+    }
+    console.log('Seeded Krispies sales');
   }
 }
 

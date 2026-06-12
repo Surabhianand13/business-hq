@@ -63,6 +63,14 @@ export const api = {
   createDeal: (data) => request('POST', '/api/deals', data),
   updateDeal: (id, data) => request('PUT', `/api/deals/${id}`, data),
   deleteDeal: (id) => request('DELETE', `/api/deals/${id}`),
+
+  // Krispies
+  getKrispiesStores: () => request('GET', '/api/krispies/stores'),
+  getKrispiesSales: () => request('GET', '/api/krispies/sales'),
+  saveKrispiesSale: (data) => request('POST', '/api/krispies/sales', data),
+  getComplianceItems: () => request('GET', '/api/krispies/items'),
+  getCompliance: (date) => request('GET', `/api/krispies/compliance?date=${date}`),
+  saveCompliance: (data) => request('POST', '/api/krispies/compliance', data),
 };
 
 export default api;

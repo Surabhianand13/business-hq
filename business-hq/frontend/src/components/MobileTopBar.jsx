@@ -10,6 +10,8 @@ const pageLabels = {
   '/settings': 'Settings',
   '/reports': 'Reports',
   '/pipeline': 'Sales Pipeline',
+  '/krispies-sales': 'Krispies Sales',
+  '/krispies-compliance': 'Store Compliance',
 };
 
 export default function MobileTopBar() {
