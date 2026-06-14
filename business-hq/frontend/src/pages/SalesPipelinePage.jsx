@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../App';
+import { useResponsive } from '../hooks/useResponsive';
 import api from '../api';
 
 const STAGES = [
@@ -907,6 +908,7 @@ function RevenueForecast({ deals }) {
 const PAGE_SIZE = 25;
 
 function DealListView({ deals, onEdit, onDelete, onMove }) {
+  const { isMobile } = useResponsive();
   const [sortKey, setSortKey] = useState('next_followup_date');
   const [sortDir, setSortDir] = useState('asc');
   const [page, setPage] = useState(1);
@@ -965,12 +967,59 @@ function DealListView({ deals, onEdit, onDelete, onMove }) {
       border: '1px solid #f0f0f5', boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
       overflow: 'hidden'
     }}>
+      {deals.length === 0 ? (
+        <div style={{ padding: '48px 16px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+          No deals match your filters.
+        </div>
+      ) : isMobile ? (
+        /* ---- MOBILE: card list ---- */
+        <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {pageDeals.map(deal => {
+            const stageInfo = STAGES.find(s => s.key === deal.stage);
+            const fd = deal.next_followup_date ? startOfDay(new Date(deal.next_followup_date)) : null;
+            const overdue = fd && fd < today;
+            const isToday = fd && fd.getTime() === today.getTime();
+            return (
+              <div key={deal.id} onClick={() => onEdit(deal)} style={{
+                border: '1px solid #f0f0f5', borderLeft: `3px solid ${stageInfo?.color || '#6b7280'}`,
+                borderRadius: '12px', padding: '12px', background: '#fff', cursor: 'pointer',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deal.company}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '1px' }}>{deal.title}{deal.contact_phone ? ` · ${deal.contact_phone}` : ''}</div>
+                  </div>
+                  <div style={{ fontSize: '15px', fontWeight: '800', color: '#1a1a2e', whiteSpace: 'nowrap' }}>{formatCurrency(deal.value)}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px', background: stageInfo?.bg, color: stageInfo?.color }}>
+                    {stageInfo?.emoji} {stageInfo?.label}
+                  </span>
+                  {deal.assignee_name && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: deal.assignee_color || '#6c63ff', color: 'white', fontSize: '9px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{deal.assignee_name[0]}</span>
+                      {deal.assignee_name}
+                    </span>
+                  )}
+                  {fd && (
+                    <span style={{ fontSize: '11px', fontWeight: '700', marginLeft: 'auto', color: overdue ? '#ef4444' : isToday ? '#d97706' : '#9ca3af', background: overdue ? '#fef2f2' : isToday ? '#fffbeb' : 'transparent', padding: overdue || isToday ? '2px 8px' : 0, borderRadius: '6px' }}>
+                      🔔 {overdue ? 'Overdue' : isToday ? 'Today' : formatDate(deal.next_followup_date)}
+                    </span>
+                  )}
+                </div>
+                {/* Quick actions */}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }} onClick={e => e.stopPropagation()}>
+                  <div style={{ flex: 1 }}><MoveStageDropdown deal={deal} onMove={onMove} /></div>
+                  <button onClick={() => onEdit(deal)} style={{ background: '#f5f5f7', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: '700', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+                  <button onClick={() => onDelete(deal.id)} style={{ background: '#fef2f2', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: '700', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
       <div style={{ overflowX: 'auto' }}>
-        {deals.length === 0 ? (
-          <div style={{ padding: '48px 16px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
-            No deals match your filters.
-          </div>
-        ) : (
+        {(
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '880px' }}>
             <thead>
               <tr>
@@ -1074,6 +1123,7 @@ function DealListView({ deals, onEdit, onDelete, onMove }) {
           </table>
         )}
       </div>
+      )}
 
       {/* Pagination */}
       {deals.length > 0 && (
@@ -1240,7 +1290,7 @@ export default function SalesPipelinePage() {
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'flex', gap: '14px', marginBottom: '24px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
         <StatCard emoji="💰" label="Total Pipeline" value={formatCurrency(activePipelineValue)} sub="All non-lost deals" color="#6c63ff" />
         <StatCard emoji="✅" label="Won Revenue" value={formatCurrency(wonRevenue)} sub={`${wonCount} deal${wonCount !== 1 ? 's' : ''} closed`} color="#10b981" />
         <StatCard emoji="🎯" label="Active Deals" value={activeDeals} sub="In progress" color="#3b82f6" />
