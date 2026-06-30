@@ -140,6 +140,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .section { margin-top: 16px; }
 .section h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em;
   color: var(--muted); margin: 0 0 8px; }
+.cash-section {
+  border: 1px solid rgba(232, 255, 71, .25);
+  background: rgba(232, 255, 71, .04);
+  padding: 12px 14px; border-radius: 10px;
+}
+.cash-section h4 { color: var(--accent); }
 .flags-list { padding-left: 18px; margin: 0; }
 .flags-list li { margin-bottom: 4px; }
 

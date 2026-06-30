@@ -117,6 +117,16 @@ function renderDetail() {
       <p>${inc.summary || '—'}</p>
     </div>
 
+    <div class="section cash-section">
+      <h4>Personal QR / UPI check</h4>
+      <p>${inc.personal_qr_check || '—'}</p>
+    </div>
+
+    <div class="section cash-section">
+      <h4>Cash retention check</h4>
+      <p>${inc.cash_retention || '—'}</p>
+    </div>
+
     <div class="section">
       <h4>Scene description</h4>
       <p>${inc.scene_description || '—'}</p>
